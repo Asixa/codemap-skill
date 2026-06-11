@@ -2,7 +2,7 @@
 
 **A code janitor for AI coding agents.** Point it at any repo and it draws an
 **interactive architecture map**, scores **every module 0–100** for technical debt, and
-helps you **clean up the spaghetti** — incrementally, one commit at a time.
+helps you **pay down the cruft** — incrementally, one commit at a time.
 
 ![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-f59e0b)
 ![works with Codex](https://img.shields.io/badge/works%20with-Codex%20%2F%20any%20agent-7c8794)
@@ -10,11 +10,10 @@ helps you **clean up the spaghetti** — incrementally, one commit at a time.
 ![language agnostic](https://img.shields.io/badge/langs-Py%20·%20TS%20·%20Rust%20·%20C%23%20·%20C%2B%2B-555)
 ![license MIT](https://img.shields.io/badge/license-MIT-blue)
 
-> Every codebase rots into a 屎山 (spaghetti / big ball of mud) eventually — monkeypatches,
-> silent fallbacks, dead "legacy" paths, half-finished stubs, copy-pasted duplication,
-> god-files, and valueless glue. **codemap finds that rot, ranks it, and hands an AI agent
-> a clean punch-list to fix it** — with a regression-gated fix loop so cleanup never breaks
-> your build.
+> Every codebase accumulates cruft over time — monkeypatches, silent fallbacks, dead
+> "legacy" paths, half-finished stubs, copy-pasted duplication, god-files, and valueless
+> glue. **codemap surfaces that rot, ranks it, and hands an AI agent a clear punch-list to
+> fix it** — with a regression-gated fix loop so the cleanup never breaks your build.
 
 ![architecture map](examples/01-map.png)
 
@@ -147,7 +146,7 @@ merged:** *auditor* (scores), *test-author* (writes tests), *fixer* (changes cod
 *acceptance/verifier* (proves no regression). Tests are the regression net and are kept
 out of a module's own audit scope.
 
-## Customizing the standard (capture *your* "屎山")
+## Customizing the standard (define your own code smells)
 
 The scoring standard is **data, not code** (`reference/standard.json`: rubric, severities,
 coupling, and issue tags with descriptions). Open the **Standard** page in the map → **Edit**
@@ -185,4 +184,4 @@ codemap/
 
 <sub>Keywords: code quality · technical debt · refactoring · code janitor · legacy code
 cleanup · architecture visualization · dependency graph · static analysis · code audit ·
-Claude Code skill · Codex · AI agents · spaghetti code · 屎山.</sub>
+Claude Code skill · Codex · AI agents · code rot · cruft · code smells.</sub>
