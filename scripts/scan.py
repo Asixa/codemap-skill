@@ -179,12 +179,20 @@ def main():
                   ensure_ascii=False, indent=1)
 
     needs = buckets["stale"] + buckets["unaudited"]
+    # oversized modules: too coarse to be a useful audit unit AND expensive to audit
+    # (the auditor must read a lot). Split candidates. Threshold overridable via meta.
+    big_threshold = state.get("meta", {}).get("oversizedLoc", 2000)
+    oversized = sorted(((m["loc"], m["id"]) for m in state.get("modules", [])
+                        if (m.get("loc") or 0) >= big_threshold), reverse=True)
+    needs_loc = sum(m.get("loc") or 0 for m in state.get("modules", []) if m["id"] in set(needs))
     report = {
         "modules": len(state.get("modules", [])),
         "tracked_loc": tracked_loc,
         "tracked_files": len(union_files),
         "needs_audit": needs,
         "needs_audit_count": len(needs),
+        "needs_audit_loc": needs_loc,          # rough proxy for the next audit's token cost
+        "oversized": [mid for _, mid in oversized],   # split candidates (loc >= threshold)
         "up_to_date": len(needs) == 0 and not buckets["empty"],
         "git": git_report,
         **buckets,
