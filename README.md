@@ -19,6 +19,42 @@ helps you **pay down the cruft** — incrementally, one commit at a time.
 
 ---
 
+## Install
+
+codemap is one self-contained folder. Clone it once, then wire it into whichever agent you
+use — the engine (Python scripts + the `SKILL.md` / `AGENTS.md` / `reference/STANDARDS.md`
+workflow) is identical for all of them.
+
+**Claude Code** — skills live under `~/.claude/skills/`, so clone it straight there:
+
+```bash
+git clone https://github.com/Asixa/codemap-skill ~/.claude/skills/codemap
+```
+
+Restart Claude Code; it shows up as **`/codemap`**.
+
+**OpenAI Codex** — Codex auto-reads `AGENTS.md`. Clone the repo, then add one line to your
+project's `AGENTS.md` (or `~/.codex/AGENTS.md`):
+
+```bash
+git clone https://github.com/Asixa/codemap-skill ~/.codemap
+```
+> For architecture maps / code audits, use the codemap tool at `~/.codemap` — follow its `AGENTS.md`.
+
+**Cursor** — clone it, then add a project rule at `.cursor/rules/codemap.mdc`:
+
+```bash
+git clone https://github.com/Asixa/codemap-skill ~/.codemap
+```
+> Use the codemap tool at `~/.codemap` for architecture maps / code audits — follow its `AGENTS.md`.
+
+**Any other agent** (Windsurf, Aider, Cline, …) or **by hand** — clone it anywhere and tell
+the agent: *"Use the codemap tool at `~/.codemap`; follow its `SKILL.md`, and score each
+module with a separate sub-task per `reference/STANDARDS.md`."* The deterministic scripts
+(`scan` / `query` / `render` / `apply_audit`) also run standalone with no agent at all.
+
+> Windows PowerShell: replace `~` with `$env:USERPROFILE` (e.g. `$env:USERPROFILE\.claude\skills\codemap`).
+
 ## Why codemap
 
 Most "architecture diagram" tools draw *files and imports*. codemap is different:
@@ -65,11 +101,6 @@ cross-cutting themes:
 
 Language-agnostic. LoC and hashing work on **any** text source and `paths` are plain globs,
 so it covers **Python, TypeScript/JS, Rust, C#/.NET, C/C++, Go, Java, Swift**, and more.
-Build/test/generated trees are excluded out of the box (`target/`, `bin/`, `obj/`,
-`node_modules/`, `cmake-build*`, `__pycache__/`, `dist/`, `*.d.ts`, `*.Designer.cs`, …).
-The rubric names *behaviors*, not syntax — `reference/STANDARDS.md` maps each smell to its
-per-language form (e.g. `any-escape` = `as any` / `dynamic` / `void*` / `reinterpret_cast`
-/ `unsafe`).
 
 ## Requirements
 
@@ -77,42 +108,6 @@ per-language form (e.g. `any-escape` = `as any` / `dynamic` / `void*` / `reinter
 - **An AI coding agent** to drive the audit/fix/test steps — **Claude Code**, **Codex**,
   **Cursor**, or any agent that reads instructions and spawns sub-tasks (see Install).
 - A browser to open the generated HTML. That's it.
-
-## Install
-
-codemap is one self-contained folder. Clone it once, then wire it into whichever agent you
-use — the engine (Python scripts + the `SKILL.md` / `AGENTS.md` / `reference/STANDARDS.md`
-workflow) is identical for all of them.
-
-**Claude Code** — skills live under `~/.claude/skills/`, so clone it straight there:
-
-```bash
-git clone https://github.com/Asixa/codemap-skill ~/.claude/skills/codemap
-```
-
-Restart Claude Code; it shows up as **`/codemap`**.
-
-**OpenAI Codex** — Codex auto-reads `AGENTS.md`. Clone the repo, then add one line to your
-project's `AGENTS.md` (or `~/.codex/AGENTS.md`):
-
-```bash
-git clone https://github.com/Asixa/codemap-skill ~/.codemap
-```
-> For architecture maps / code audits, use the codemap tool at `~/.codemap` — follow its `AGENTS.md`.
-
-**Cursor** — clone it, then add a project rule at `.cursor/rules/codemap.mdc`:
-
-```bash
-git clone https://github.com/Asixa/codemap-skill ~/.codemap
-```
-> Use the codemap tool at `~/.codemap` for architecture maps / code audits — follow its `AGENTS.md`.
-
-**Any other agent** (Windsurf, Aider, Cline, …) or **by hand** — clone it anywhere and tell
-the agent: *"Use the codemap tool at `~/.codemap`; follow its `SKILL.md`, and score each
-module with a separate sub-task per `reference/STANDARDS.md`."* The deterministic scripts
-(`scan` / `query` / `render` / `apply_audit`) also run standalone with no agent at all.
-
-> Windows PowerShell: replace `~` with `$env:USERPROFILE` (e.g. `$env:USERPROFILE\.claude\skills\codemap`).
 
 ## Usage
 
@@ -128,24 +123,6 @@ preferences (UI language, output location, project title) and saves them to
 | `/codemap update` | incremental + git-aware: re-audit only changed modules, re-render |
 | `/codemap test <module>` | generate a regression-net of tests for a module |
 | `/codemap fix <module>` | regression-gated cleanup: lock baseline → fix → independent acceptance → re-score |
-
-The deterministic scripts (no AI needed) can also be run by hand:
-
-```bash
-S=~/.claude/skills/codemap
-# what changed since last run — a `git` block lists commits + affected modules
-python3 $S/scripts/scan.py  --root . --state .codemap/modules.json
-# cache the current HEAD as the new baseline (end of an update)
-python3 $S/scripts/scan.py  --root . --state .codemap/modules.json --stamp-rev
-# pick targets cheaply, without reading the whole state (for agents)
-python3 $S/scripts/query.py --state .codemap/modules.json --max-grade C --format ids
-python3 $S/scripts/query.py --state .codemap/modules.json --tag dual-format
-# regenerate the HTML + report from the state
-python3 $S/scripts/render.py --state .codemap/modules.json --template $S/assets/template.html \
-  --out-html .codemap/codemap.html --out-md .codemap/codemap.md
-```
-
-> On Windows use `python` instead of `python3`.
 
 ## How it works
 
