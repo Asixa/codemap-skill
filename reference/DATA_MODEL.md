@@ -15,8 +15,8 @@ subagents edit it) and re-render.
     "generatedAt": "2026-01-01",
     "rev": "abc1234",                   // git HEAD at the last codemap run (the baseline
                                         //   `update`/`check` diff from; set by scan.py --stamp-rev)
-    "htmlPath": ".codemap/architecture-map.html",  // output location (for reciprocal links)
-    "mdPath": ".codemap/architecture-audit.md",
+    "htmlPath": ".codemap/codemap.html",  // output location (for reciprocal links)
+    "mdPath": ".codemap/codemap.md",
     "spineDesc": "A user edits … → … → persistence.",  // shown on the spine view
     "tracked_loc": 184900,             // filled by scan.py --write (union, de-duped)
     "tracked_files": 980,

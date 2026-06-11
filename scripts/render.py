@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""render.py — regenerate architecture-map.html + architecture-audit.md from modules.json.
+"""render.py — regenerate codemap.html + codemap.md from modules.json.
 
 modules.json is the single source of truth. The HTML and MD are pure projections
 of it and must never be hand-edited. Run scan.py --write before rendering so LoC /
@@ -8,7 +8,7 @@ content hashes are current.
 Usage:
   python render.py --state modules.json \
       --template assets/template.html \
-      --out-html architecture-map.html --out-md architecture-audit.md
+      --out-html codemap.html --out-md codemap.md
 
 Stdlib only.
 """
@@ -70,12 +70,12 @@ def render_md(state):
     out = []
     proj = meta.get("project", "Project")
     out.append("<!--")
-    out.append(f"  This file:        {meta.get('mdPath', 'architecture-audit.md')}   (written report)")
-    out.append(f"  Interactive map:  {meta.get('htmlPath', 'architecture-map.html')}")
+    out.append(f"  This file:        {meta.get('mdPath', 'codemap.md')}   (written report)")
+    out.append(f"  Interactive map:  {meta.get('htmlPath', 'codemap.html')}")
     out.append("-->\n")
     out.append(f"# {proj} — Functional Module Quality Audit\n")
-    out.append(f"> **Interactive view:** [`{meta.get('htmlPath','architecture-map.html')}`]"
-               f"({os.path.basename(meta.get('htmlPath','architecture-map.html'))}) — "
+    out.append(f"> **Interactive view:** [`{meta.get('htmlPath','codemap.html')}`]"
+               f"({os.path.basename(meta.get('htmlPath','codemap.html'))}) — "
                "per-module scores, findings, LoC, and the dependency graph. This file is the written report.\n")
     gen = meta.get("generatedAt", "")
     loc_line = meta.get("locLine") or (

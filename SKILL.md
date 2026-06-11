@@ -12,15 +12,15 @@ description: >-
   "is the arch map current", "update the architecture diagram", "fix module X".
 ---
 
-# Architecture Audit & Map
+# codemap — Architecture Map & Code-Quality Audit
 
 Builds and maintains three coupled artifacts for a project:
 
 1. **`modules.json`** — the source of truth: every *functional* module (not file) with
    its paths, dependencies, coupling, LoC, content hash, score, grade, tags, findings.
-2. **`architecture-map.html`** — a self-contained interactive map (layered modules,
+2. **`codemap.html`** — a self-contained interactive map (layered modules,
    dependency highlighting, health coloring, audit-report view).
-3. **`architecture-audit.md`** — the written report (per-layer scores, per-module LoC
+3. **`codemap.md`** — the written report (per-layer scores, per-module LoC
    table, worst offenders, cross-cutting themes).
 
 The HTML and MD are **always regenerated** from `modules.json` by `render.py`. Never
@@ -51,7 +51,7 @@ prompt) and `standard.json` (the machine copy) in sync if you change the default
   - `config.json` — the user's saved preferences (UI language, output location, title…).
   - `modules.json` — the state (source of truth).
   - `standard.json` — optional per-project custom audit standard.
-  - `architecture-map.html` + `architecture-audit.md` — the generated outputs (default).
+  - `codemap.html` + `codemap.md` — the generated outputs (default).
 
   The output location is a user preference: if they want the HTML/MD committed/visible,
   let them point it at `docs/` instead (ask — see `generate` step 0). Set
@@ -129,7 +129,7 @@ Use when no `modules.json` exists yet (this is also "init").
    Write `config.json` like:
    ```json
    {"lang":"zh","project":"My App","subtitle":"…","outputDir":".codemap",
-    "htmlFile":"architecture-map.html","mdFile":"architecture-audit.md"}
+    "htmlFile":"codemap.html","mdFile":"codemap.md"}
    ```
    and apply it to `meta` when you build `modules.json`. Re-read `config.json` on later
    runs so preferences persist.

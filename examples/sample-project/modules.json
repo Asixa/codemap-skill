@@ -1,0 +1,1081 @@
+{
+ "meta": {
+  "project": "Acme Storefront",
+  "subtitle": "Sample project — a codemap demo",
+  "lang": "en",
+  "generatedAt": "2026-01-01",
+  "htmlPath": ".codemap/codemap.html",
+  "mdPath": ".codemap/codemap.md",
+  "spineDesc": "A shopper opens a Product page → the cartStore calls the API Gateway → the orders route hands off to OrderService → which writes the Order aggregate through the Repository.",
+  "tracked_loc": 28640,
+  "tracked_files": 214,
+  "locLine": "≈ 28,600 LoC · 214 files (sample)"
+ },
+ "bands": [
+  {
+   "id": "shell",
+   "tier": "fe",
+   "t": "Frontend · Shell & Routing",
+   "d": "layout, routing, navigation"
+  },
+  {
+   "id": "pages",
+   "tier": "fe",
+   "t": "Frontend · Pages",
+   "d": "screens the user sees"
+  },
+  {
+   "id": "stores",
+   "tier": "fe",
+   "t": "Frontend · State Stores",
+   "d": "one store per domain"
+  },
+  {
+   "id": "transport",
+   "tier": "fe",
+   "t": "Frontend · Transport",
+   "d": "REST + WebSocket clients"
+  },
+  {
+   "id": "wire",
+   "wire": true,
+   "t": "◀ REST / WebSocket ▶"
+  },
+  {
+   "id": "api",
+   "tier": "be",
+   "t": "Backend · API Routes",
+   "d": "HTTP endpoints"
+  },
+  {
+   "id": "services",
+   "tier": "be",
+   "t": "Backend · Services",
+   "d": "business logic"
+  },
+  {
+   "id": "domain",
+   "tier": "be",
+   "t": "Backend · Domain Core",
+   "d": "entities & value objects"
+  },
+  {
+   "id": "data",
+   "tier": "be",
+   "t": "Backend · Persistence",
+   "d": "data access"
+  },
+  {
+   "id": "workers",
+   "tier": "be",
+   "t": "Backend · Workers & Jobs",
+   "d": "async processing"
+  },
+  {
+   "id": "integrations",
+   "tier": "be",
+   "t": "Integrations",
+   "d": "third-party adapters"
+  }
+ ],
+ "spine": [
+  "product_page",
+  "cart_store",
+  "api_client",
+  "api_gw",
+  "orders_api",
+  "order_svc",
+  "order_model",
+  "repo"
+ ],
+ "reportThemes": [
+  [
+   "Payments is the weakest area",
+   "PaymentService and the payments routes are still sandbox stubs (fake-output / stub) — real provider integration is unfinished, yet it is already wired into checkout."
+  ],
+  [
+   "Checkout and Order carry the most debt",
+   "checkout_page, cartStore and OrderService are god-components with duplicated state-machine logic; the multi-step checkout mixes UI, validation and API calls in one file."
+  ],
+  [
+   "Dual-format is creeping in at the order boundary",
+   "orders routes, checkoutStore and the checkout page accept both legacy and v2 payload shapes — normalize once at the transport layer instead."
+  ],
+  [
+   "apiClient is mostly glue",
+   "~50 near-identical endpoint wrappers add no value; generate them or collapse to a single typed client."
+  ]
+ ],
+ "modules": [
+  {
+   "id": "app_shell",
+   "label": "App Shell",
+   "band": "shell",
+   "path": "src/app/AppShell.tsx",
+   "coupling": "core",
+   "deps": [
+    "router",
+    "ui_store",
+    "auth_store"
+   ],
+   "desc": "Root component: layout, providers, top-level routing and the error boundary.",
+   "loc": 420,
+   "score": 84,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "router",
+   "label": "Router",
+   "band": "shell",
+   "path": "src/app/router.tsx",
+   "coupling": "high",
+   "deps": [],
+   "desc": "Client-side route table and auth guards.",
+   "loc": 180,
+   "score": 90,
+   "grade": "A",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "nav",
+   "label": "Navigation",
+   "band": "shell",
+   "path": "src/app/Nav.tsx",
+   "coupling": "low",
+   "deps": [
+    "router",
+    "auth_store"
+   ],
+   "desc": "Top nav, sidebar and breadcrumbs.",
+   "loc": 240,
+   "score": 88,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "catalog_page",
+   "label": "Catalog",
+   "band": "pages",
+   "path": "src/pages/Catalog.tsx",
+   "coupling": "med",
+   "deps": [
+    "catalog_store",
+    "search_store"
+   ],
+   "desc": "Product listing with filters, sorting and pagination.",
+   "loc": 980,
+   "score": 78,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "product_page",
+   "label": "Product",
+   "band": "pages",
+   "path": "src/pages/Product.tsx",
+   "coupling": "med",
+   "deps": [
+    "catalog_store",
+    "cart_store"
+   ],
+   "desc": "Product detail: gallery, variant picker, reviews, add-to-cart.",
+   "loc": 1240,
+   "score": 72,
+   "grade": "C",
+   "tags": [
+    "bloat"
+   ],
+   "findings": [
+    {
+     "sev": "MED",
+     "loc": "src/pages/Product.tsx",
+     "text": "1240-line component: gallery, variant picker and reviews in one file."
+    }
+   ]
+  },
+  {
+   "id": "cart_page",
+   "label": "Cart",
+   "band": "pages",
+   "path": "src/pages/Cart.tsx",
+   "coupling": "med",
+   "deps": [
+    "cart_store",
+    "pricing_client"
+   ],
+   "desc": "Cart view, line-item editing and promo codes.",
+   "loc": 1420,
+   "score": 70,
+   "grade": "C",
+   "tags": [
+    "god-component"
+   ],
+   "findings": []
+  },
+  {
+   "id": "checkout_page",
+   "label": "Checkout",
+   "band": "pages",
+   "path": "src/pages/Checkout.tsx",
+   "coupling": "high",
+   "deps": [
+    "cart_store",
+    "auth_store",
+    "payments_client"
+   ],
+   "desc": "Multi-step checkout: address, shipping, payment, review.",
+   "loc": 1860,
+   "score": 58,
+   "grade": "D",
+   "tags": [
+    "god-component",
+    "dual-format",
+    "fallback"
+   ],
+   "findings": [
+    {
+     "sev": "HIGH",
+     "loc": "src/pages/Checkout.tsx",
+     "text": "1860-line god-component mixing the address/shipping/payment steps, validation and direct API calls."
+    },
+    {
+     "sev": "MED",
+     "loc": "src/pages/Checkout.tsx:412",
+     "text": "reads both `postal_code` and `postalCode` from the address form (dual-format)."
+    },
+    {
+     "sev": "LOW",
+     "loc": "src/pages/Checkout.tsx:980",
+     "text": "silent catch around the shipping-rate fetch falls back to a flat rate."
+    }
+   ]
+  },
+  {
+   "id": "account_page",
+   "label": "Account",
+   "band": "pages",
+   "path": "src/pages/Account.tsx",
+   "coupling": "low",
+   "deps": [
+    "auth_store"
+   ],
+   "desc": "Profile, order history and saved addresses.",
+   "loc": 760,
+   "score": 82,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "admin_page",
+   "label": "Admin",
+   "band": "pages",
+   "path": "src/pages/Admin.tsx",
+   "coupling": "med",
+   "deps": [
+    "admin_client"
+   ],
+   "desc": "Internal dashboard: orders, inventory and reports.",
+   "loc": 2100,
+   "score": 66,
+   "grade": "C",
+   "tags": [
+    "bloat",
+    "any-escape"
+   ],
+   "findings": [
+    {
+     "sev": "MED",
+     "loc": "src/pages/Admin.tsx",
+     "text": "2100-line page: reports, tables and editors all in one file."
+    },
+    {
+     "sev": "LOW",
+     "loc": "src/pages/Admin.tsx:300",
+     "text": "several `as any` casts around the chart library."
+    }
+   ]
+  },
+  {
+   "id": "search_page",
+   "label": "Search",
+   "band": "pages",
+   "path": "src/pages/Search.tsx",
+   "coupling": "low",
+   "deps": [
+    "search_store"
+   ],
+   "desc": "Search results with facets.",
+   "loc": 540,
+   "score": 84,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "cart_store",
+   "label": "cartStore",
+   "band": "stores",
+   "path": "src/stores/cart.ts",
+   "coupling": "high",
+   "deps": [
+    "api_client"
+   ],
+   "desc": "Cart line items, totals and promo state.",
+   "loc": 360,
+   "score": 74,
+   "grade": "C",
+   "tags": [
+    "duplication"
+   ],
+   "findings": [
+    {
+     "sev": "MED",
+     "loc": "src/stores/cart.ts:90",
+     "text": "cart totals re-implemented here and in PricingEngine (duplication)."
+    }
+   ]
+  },
+  {
+   "id": "auth_store",
+   "label": "authStore",
+   "band": "stores",
+   "path": "src/stores/auth.ts",
+   "coupling": "core",
+   "deps": [
+    "api_client"
+   ],
+   "desc": "Session, tokens and the current user.",
+   "loc": 290,
+   "score": 80,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "catalog_store",
+   "label": "catalogStore",
+   "band": "stores",
+   "path": "src/stores/catalog.ts",
+   "coupling": "high",
+   "deps": [
+    "api_client"
+   ],
+   "desc": "Products, categories and cached pages.",
+   "loc": 410,
+   "score": 86,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "search_store",
+   "label": "searchStore",
+   "band": "stores",
+   "path": "src/stores/search.ts",
+   "coupling": "med",
+   "deps": [
+    "api_client"
+   ],
+   "desc": "Query, facets and results.",
+   "loc": 220,
+   "score": 82,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "ui_store",
+   "label": "uiStore",
+   "band": "stores",
+   "path": "src/stores/ui.ts",
+   "coupling": "low",
+   "deps": [],
+   "desc": "Modals, toasts and theme.",
+   "loc": 150,
+   "score": 88,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "checkout_store",
+   "label": "checkoutStore",
+   "band": "stores",
+   "path": "src/stores/checkout.ts",
+   "coupling": "med",
+   "deps": [
+    "cart_store"
+   ],
+   "desc": "Checkout step state and form drafts.",
+   "loc": 480,
+   "score": 62,
+   "grade": "C",
+   "tags": [
+    "dual-format",
+    "legacy"
+   ],
+   "findings": [
+    {
+     "sev": "MED",
+     "loc": "src/stores/checkout.ts:40",
+     "text": "reads both snake_case and camelCase address fields (dual-format)."
+    },
+    {
+     "sev": "LOW",
+     "loc": "src/stores/checkout.ts:8",
+     "text": "legacy single-step draft kept for old links."
+    }
+   ]
+  },
+  {
+   "id": "api_client",
+   "label": "apiClient",
+   "band": "transport",
+   "path": "src/transport/apiClient.ts",
+   "coupling": "core",
+   "deps": [
+    "api_gw"
+   ],
+   "desc": "REST client — ~50 thin endpoint wrappers plus auth and retry.",
+   "loc": 690,
+   "score": 68,
+   "grade": "C",
+   "tags": [
+    "glue",
+    "bloat"
+   ],
+   "findings": [
+    {
+     "sev": "MED",
+     "loc": "src/transport/apiClient.ts",
+     "text": "~50 one-line get/post wrappers that only forward args (glue) — generate or collapse to a typed client."
+    },
+    {
+     "sev": "LOW",
+     "loc": "src/transport/apiClient.ts:1",
+     "text": "one 690-line file mixing transport with the whole endpoint surface."
+    }
+   ]
+  },
+  {
+   "id": "ws_client",
+   "label": "wsClient",
+   "band": "transport",
+   "path": "src/transport/wsClient.ts",
+   "coupling": "med",
+   "deps": [
+    "api_gw"
+   ],
+   "desc": "WebSocket for live order and stock updates.",
+   "loc": 230,
+   "score": 84,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "payments_client",
+   "label": "paymentsClient",
+   "band": "transport",
+   "path": "src/transport/payments.ts",
+   "coupling": "med",
+   "deps": [
+    "stripe_gw"
+   ],
+   "desc": "Thin bridge to the payments API.",
+   "loc": 140,
+   "score": 86,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "admin_client",
+   "label": "adminClient",
+   "band": "transport",
+   "path": "src/transport/admin.ts",
+   "coupling": "low",
+   "deps": [
+    "api_gw"
+   ],
+   "desc": "Admin-only API client.",
+   "loc": 180,
+   "score": 80,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "pricing_client",
+   "label": "pricingClient",
+   "band": "transport",
+   "path": "src/transport/pricing.ts",
+   "coupling": "low",
+   "deps": [
+    "api_gw"
+   ],
+   "desc": "Live price/quote client.",
+   "loc": 110,
+   "score": 84,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "api_gw",
+   "label": "API Gateway",
+   "band": "api",
+   "path": "api/app.py",
+   "coupling": "core",
+   "deps": [
+    "auth_api",
+    "products_api",
+    "orders_api",
+    "payments_api",
+    "search_api"
+   ],
+   "desc": "HTTP app: routing, middleware, auth and the request lifecycle.",
+   "loc": 540,
+   "score": 88,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "auth_api",
+   "label": "auth routes",
+   "band": "api",
+   "path": "api/auth.py",
+   "coupling": "high",
+   "deps": [
+    "auth_svc"
+   ],
+   "desc": "Login, signup, token refresh and OAuth.",
+   "loc": 420,
+   "score": 78,
+   "grade": "B",
+   "tags": [
+    "silent-except"
+   ],
+   "findings": [
+    {
+     "sev": "LOW",
+     "loc": "api/auth.py:140",
+     "text": "broad except around the OAuth token exchange logs but swallows the cause."
+    }
+   ]
+  },
+  {
+   "id": "products_api",
+   "label": "products routes",
+   "band": "api",
+   "path": "api/products.py",
+   "coupling": "med",
+   "deps": [
+    "catalog_svc"
+   ],
+   "desc": "Product and category CRUD + listing.",
+   "loc": 360,
+   "score": 84,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "orders_api",
+   "label": "orders routes",
+   "band": "api",
+   "path": "api/orders.py",
+   "coupling": "high",
+   "deps": [
+    "order_svc"
+   ],
+   "desc": "Cart, order placement and status.",
+   "loc": 610,
+   "score": 74,
+   "grade": "C",
+   "tags": [
+    "dual-format"
+   ],
+   "findings": [
+    {
+     "sev": "MED",
+     "loc": "api/orders.py:88",
+     "text": "accepts both the legacy and v2 cart payload shapes (dual-format)."
+    }
+   ]
+  },
+  {
+   "id": "payments_api",
+   "label": "payments routes",
+   "band": "api",
+   "path": "api/payments.py",
+   "coupling": "high",
+   "deps": [
+    "payment_svc"
+   ],
+   "desc": "Charge, refund and webhooks (provider integration WIP).",
+   "loc": 480,
+   "score": 55,
+   "grade": "D",
+   "tags": [
+    "stub",
+    "fallback"
+   ],
+   "findings": [
+    {
+     "sev": "HIGH",
+     "loc": "api/payments.py:44",
+     "text": "webhook handler always returns 200 without verifying the signature (stub)."
+    },
+    {
+     "sev": "MED",
+     "loc": "api/payments.py:70",
+     "text": "falls back to marking the order paid when the provider call times out."
+    }
+   ]
+  },
+  {
+   "id": "search_api",
+   "label": "search routes",
+   "band": "api",
+   "path": "api/search.py",
+   "coupling": "low",
+   "deps": [
+    "search_svc"
+   ],
+   "desc": "Query and indexing endpoints.",
+   "loc": 240,
+   "score": 82,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "auth_svc",
+   "label": "AuthService",
+   "band": "services",
+   "path": "services/auth.py",
+   "coupling": "high",
+   "deps": [
+    "user_model",
+    "token_util"
+   ],
+   "desc": "Credentials, sessions and password hashing.",
+   "loc": 520,
+   "score": 80,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "order_svc",
+   "label": "OrderService",
+   "band": "services",
+   "path": "services/order.py",
+   "coupling": "core",
+   "deps": [
+    "order_model",
+    "inventory_svc",
+    "pricing_svc",
+    "payment_svc"
+   ],
+   "desc": "Order placement, the state machine and fulfillment.",
+   "loc": 1480,
+   "score": 64,
+   "grade": "C",
+   "tags": [
+    "duplication",
+    "bloat"
+   ],
+   "findings": [
+    {
+     "sev": "HIGH",
+     "loc": "services/order.py",
+     "text": "1480-line service; the order state machine is duplicated between place() and fulfill()."
+    },
+    {
+     "sev": "MED",
+     "loc": "services/order.py:620",
+     "text": "inventory reservation logic copy-pasted from InventoryService."
+    }
+   ]
+  },
+  {
+   "id": "pricing_svc",
+   "label": "PricingEngine",
+   "band": "services",
+   "path": "services/pricing.py",
+   "coupling": "high",
+   "deps": [
+    "product_model"
+   ],
+   "desc": "Prices, taxes, discounts and promotions.",
+   "loc": 880,
+   "score": 70,
+   "grade": "C",
+   "tags": [
+    "over-fit"
+   ],
+   "findings": [
+    {
+     "sev": "MED",
+     "loc": "services/pricing.py:120",
+     "text": "discount rules hardcoded to the current promo set (over-fit)."
+    }
+   ]
+  },
+  {
+   "id": "inventory_svc",
+   "label": "InventoryService",
+   "band": "services",
+   "path": "services/inventory.py",
+   "coupling": "med",
+   "deps": [
+    "product_model",
+    "repo"
+   ],
+   "desc": "Stock levels and reservations.",
+   "loc": 540,
+   "score": 78,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "payment_svc",
+   "label": "PaymentService",
+   "band": "services",
+   "path": "services/payment.py",
+   "coupling": "high",
+   "deps": [
+    "stripe_gw"
+   ],
+   "desc": "Charges/refunds — currently a sandbox stub returning canned results.",
+   "loc": 260,
+   "score": 48,
+   "grade": "D",
+   "tags": [
+    "stub",
+    "fake-output"
+   ],
+   "findings": [
+    {
+     "sev": "HIGH",
+     "loc": "services/payment.py:31",
+     "text": "charge()/refund() return a canned `{status:'succeeded'}` — sandbox stub, no real gateway call."
+    },
+    {
+     "sev": "MED",
+     "loc": "services/payment.py:88",
+     "text": "'TODO: wire the real provider before launch.'"
+    }
+   ]
+  },
+  {
+   "id": "catalog_svc",
+   "label": "CatalogService",
+   "band": "services",
+   "path": "services/catalog.py",
+   "coupling": "med",
+   "deps": [
+    "product_model",
+    "repo"
+   ],
+   "desc": "Product/category reads with caching.",
+   "loc": 430,
+   "score": 86,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "search_svc",
+   "label": "SearchService",
+   "band": "services",
+   "path": "services/search.py",
+   "coupling": "med",
+   "deps": [
+    "repo"
+   ],
+   "desc": "Index and query; falls back to SQL LIKE when the search cluster is down.",
+   "loc": 470,
+   "score": 76,
+   "grade": "B",
+   "tags": [
+    "fallback"
+   ],
+   "findings": [
+    {
+     "sev": "LOW",
+     "loc": "services/search.py:80",
+     "text": "documented fallback to SQL LIKE when Elasticsearch is unreachable."
+    }
+   ]
+  },
+  {
+   "id": "notif_svc",
+   "label": "NotificationService",
+   "band": "services",
+   "path": "services/notify.py",
+   "coupling": "low",
+   "deps": [
+    "email_worker"
+   ],
+   "desc": "Email/SMS/push fan-out.",
+   "loc": 300,
+   "score": 84,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "order_model",
+   "label": "Order",
+   "band": "domain",
+   "path": "domain/order.py",
+   "coupling": "core",
+   "deps": [
+    "product_model",
+    "user_model"
+   ],
+   "desc": "Order aggregate: items, totals and status.",
+   "loc": 380,
+   "score": 88,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "product_model",
+   "label": "Product",
+   "band": "domain",
+   "path": "domain/product.py",
+   "coupling": "high",
+   "deps": [],
+   "desc": "Product, variant and category entities.",
+   "loc": 260,
+   "score": 90,
+   "grade": "A",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "user_model",
+   "label": "User",
+   "band": "domain",
+   "path": "domain/user.py",
+   "coupling": "high",
+   "deps": [],
+   "desc": "User, address and role entities.",
+   "loc": 210,
+   "score": 88,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "money_util",
+   "label": "Money",
+   "band": "domain",
+   "path": "domain/money.py",
+   "coupling": "med",
+   "deps": [],
+   "desc": "Currency-safe money arithmetic.",
+   "loc": 120,
+   "score": 92,
+   "grade": "A",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "token_util",
+   "label": "TokenUtil",
+   "band": "domain",
+   "path": "domain/token.py",
+   "coupling": "med",
+   "deps": [],
+   "desc": "JWT sign/verify helpers.",
+   "loc": 90,
+   "score": 86,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "repo",
+   "label": "Repository",
+   "band": "data",
+   "path": "data/repo.py",
+   "coupling": "core",
+   "deps": [
+    "db",
+    "migrations"
+   ],
+   "desc": "Data-access layer over the database.",
+   "loc": 640,
+   "score": 72,
+   "grade": "C",
+   "tags": [
+    "duplication"
+   ],
+   "findings": [
+    {
+     "sev": "MED",
+     "loc": "data/repo.py",
+     "text": "per-entity CRUD copy-pasted across 9 repositories — extract a base."
+    }
+   ]
+  },
+  {
+   "id": "db",
+   "label": "DB Pool",
+   "band": "data",
+   "path": "data/db.py",
+   "coupling": "high",
+   "deps": [],
+   "desc": "Connection pool and query helpers.",
+   "loc": 180,
+   "score": 90,
+   "grade": "A",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "migrations",
+   "label": "Migrations",
+   "band": "data",
+   "path": "data/migrations",
+   "coupling": "low",
+   "deps": [],
+   "desc": "Schema migrations.",
+   "loc": 220,
+   "score": 85,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "email_worker",
+   "label": "EmailWorker",
+   "band": "workers",
+   "path": "workers/email.py",
+   "coupling": "low",
+   "deps": [
+    "notif_tmpl"
+   ],
+   "desc": "Async email queue consumer.",
+   "loc": 260,
+   "score": 80,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "webhook_dispatcher",
+   "label": "WebhookDispatcher",
+   "band": "workers",
+   "path": "workers/webhooks.py",
+   "coupling": "med",
+   "deps": [],
+   "desc": "Outbound webhooks with retry.",
+   "loc": 340,
+   "score": 68,
+   "grade": "C",
+   "tags": [
+    "silent-except",
+    "legacy"
+   ],
+   "findings": [
+    {
+     "sev": "MED",
+     "loc": "workers/webhooks.py:55",
+     "text": "`except: pass` swallows delivery errors — failed webhooks vanish."
+    },
+    {
+     "sev": "LOW",
+     "loc": "workers/webhooks.py:12",
+     "text": "legacy v1 payload path kept alongside v2."
+    }
+   ]
+  },
+  {
+   "id": "notif_tmpl",
+   "label": "Templates",
+   "band": "workers",
+   "path": "workers/templates.py",
+   "coupling": "low",
+   "deps": [],
+   "desc": "Email/notification templates.",
+   "loc": 150,
+   "score": 84,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "stripe_gw",
+   "label": "Stripe Gateway",
+   "band": "integrations",
+   "path": "integrations/stripe.py",
+   "coupling": "med",
+   "deps": [],
+   "desc": "Adapter to the Stripe payments API.",
+   "loc": 280,
+   "score": 78,
+   "grade": "B",
+   "tags": [],
+   "findings": []
+  },
+  {
+   "id": "shipping_gw",
+   "label": "Shipping Provider",
+   "band": "integrations",
+   "path": "integrations/shipping.py",
+   "coupling": "low",
+   "deps": [],
+   "desc": "Adapter to a shipping rate/label API.",
+   "loc": 230,
+   "score": 74,
+   "grade": "C",
+   "tags": [
+    "glue"
+   ],
+   "findings": [
+    {
+     "sev": "LOW",
+     "loc": "integrations/shipping.py",
+     "text": "adapter forwards every field unchanged (glue)."
+    }
+   ]
+  },
+  {
+   "id": "analytics_sink",
+   "label": "Analytics",
+   "band": "integrations",
+   "path": "integrations/analytics.py",
+   "coupling": "low",
+   "deps": [],
+   "desc": "Event sink to the analytics pipeline.",
+   "loc": 190,
+   "score": 70,
+   "grade": "C",
+   "tags": [
+    "silent-except"
+   ],
+   "findings": [
+    {
+     "sev": "LOW",
+     "loc": "integrations/analytics.py:22",
+     "text": "fire-and-forget send swallows failures silently."
+    }
+   ]
+  }
+ ]
+}

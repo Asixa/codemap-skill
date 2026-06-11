@@ -1,192 +1,188 @@
-# codemap
+# 🧹 codemap
 
-A [Claude Code](https://claude.com/claude-code) **Agent Skill** that builds and
-incrementally maintains an **interactive architecture map + per-module code-quality
-audit** for any codebase.
+**A code janitor for AI coding agents.** Point it at any repo and it draws an
+**interactive architecture map**, scores **every module 0–100** for technical debt, and
+helps you **clean up the spaghetti** — incrementally, one commit at a time.
 
-It decomposes a project into *functional* modules (not files), draws their dependency
-graph as a layered, clickable HTML page, and scores each module 0–100 for code health —
-hunting for monkeypatching, fallbacks, legacy/dead code, stubs, dual-format handling,
-bloat, duplication, and glue. Every module's score comes from an **independent
-subagent** against a fixed rubric. It's **incremental**: a per-module content hash means
-re-runs only re-audit what changed.
+![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-f59e0b)
+![works with Codex](https://img.shields.io/badge/works%20with-Codex%20%2F%20any%20agent-7c8794)
+![Python 3 · stdlib only](https://img.shields.io/badge/python-3%20·%20stdlib%20only-3776ab)
+![language agnostic](https://img.shields.io/badge/langs-Py%20·%20TS%20·%20Rust%20·%20C%23%20·%20C%2B%2B-555)
+![license MIT](https://img.shields.io/badge/license-MIT-blue)
 
-## What you get
+> Every codebase rots into a 屎山 (spaghetti / big ball of mud) eventually — monkeypatches,
+> silent fallbacks, dead "legacy" paths, half-finished stubs, copy-pasted duplication,
+> god-files, and valueless glue. **codemap finds that rot, ranks it, and hands an AI agent
+> a clean punch-list to fix it** — with a regression-gated fix loop so cleanup never breaks
+> your build.
 
-Three coupled artifacts, kept in sync:
+![architecture map](examples/01-map.png)
 
-| File | What | Where (default) |
+---
+
+## Why codemap
+
+Most "architecture diagram" tools draw *files and imports*. codemap is different:
+
+- **Functional modules, not files.** It groups code into the capabilities that actually
+  matter (a store, a handler group, a feature, a plugin) and lays them out along the
+  real data-flow.
+- **It grades the rot.** Every module gets a health **score (0–100) and grade (A–F)** plus
+  concrete `file:line` findings, hunting specifically for the smells that make code
+  unmaintainable: `monkeypatch`, `fallback`, `silent-except`, `legacy`/dead code, `stub`,
+  `fake-output`, `dual-format`, `bloat`, `duplication`, `glue`, `god-component`, …
+- **Independent, honest scoring.** Each module is audited by a **separate AI subagent**
+  against a fixed rubric — no single pass rubber-stamping the whole repo.
+- **Incremental + git-aware.** A per-module content hash + the last-run commit mean re-runs
+  only re-audit what changed, and `update` shows you the **commits since last time** and
+  which modules they touched.
+- **Cleanup that can't regress.** `fix` runs a four-role loop — lock a test baseline →
+  fix → an **independent acceptance check** proves the pre-fix tests still pass → re-score.
+
+It's the maintenance pass you never have time to do, turned into something an agent can
+run on a schedule.
+
+## Screenshots
+
+| Select a module — dependencies + audit | Audit report | Editable standard |
 |---|---|---|
-| `config.json` | your saved **preferences** (UI language, output location, title) | `<project>/.codemap/` |
-| `modules.json` | the **source of truth** (modules, deps, coupling, LoC, hash, score, findings) | `<project>/.codemap/` |
-| `architecture-map.html` | self-contained **interactive map** (health coloring, filters, dependency highlighting, audit report) | `<project>/.codemap/` |
-| `architecture-audit.md` | the written **report** (per-layer scores, LoC table, worst offenders, themes) | `<project>/.codemap/` |
+| ![module](examples/02-module.png) | ![report](examples/03-report.png) | ![standard](examples/04-standard.png) |
 
-Everything lives in **`<project>/.codemap/`** by default. On first run (`generate`) the
-tool asks your preferences — UI language, output location (point it at `docs/` if you
-want the HTML/MD committed/visible), project title — and saves them to
-`.codemap/config.json`. The HTML and MD are **generated** from `modules.json` and must
-never be hand-edited.
-
-### Interactive map features
-- Layered bands top→bottom along the data-flow; click a module to highlight what it
-  **calls** (downstream) and what **depends on it** (upstream).
-- Per-module **health score + grade (A–F)**, smell tags, and concrete `file:line` findings.
-- Color modes: **coupling** or **health** (problems pop amber/red, healthy modules
-  recede to a muted green — colorblind-friendly, the cue is saturation not just hue).
-- **Filters**: by grade level (≤ B/C/D/F) and by issue tag; live match count.
-- **Audit report** view: averages, grade spread, worst offenders, cross-cutting themes.
-- **Standard page**: a built-in "Standard" view explaining the score→grade rubric, the
-  finding severities, and every smell tag — so the scores are self-documenting.
-- **i18n**: set `meta.lang` to `"en"` or `"zh"` (module names are never translated).
+- **Click any module** to highlight what it calls (downstream) and what depends on it
+  (upstream), with its score, smell tags, and `file:line` findings.
+- **Health vs coupling** color modes — problems pop amber/red, healthy modules recede to a
+  muted green (colorblind-friendly; the cue is saturation, not just hue).
+- **Filter** by grade (≤ B/C/D/F) or by issue tag; jump straight to the worst offenders.
+- **Editable Standard page** — change descriptions, **add your own issue tags** to capture
+  *your* definition of a problem, and Export to `standard.json`; future audits use it.
+- **i18n** — English or Chinese UI (`meta.lang`); module names are never translated.
+- **Copy-fix button** on each module — copies `/codemap fix <module>` to paste into your agent.
 
 ## Languages
 
-Language-agnostic. The scripts count LoC and hash bytes for **any** text source, and
-`paths` are plain globs, so it works for Python, **TypeScript/JS, Rust, C#/.NET, C/C++**,
-Go, Java, Swift, and more. Build/test/generated trees are excluded out of the box
-(`target/`, `bin/`, `obj/`, `node_modules/`, `cmake-build*`, `__pycache__/`, `dist/`,
-`*.d.ts`, `*.Designer.cs`, …). The audit rubric names *behaviors*, not syntax —
-`reference/STANDARDS.md` maps each smell to its per-language form (e.g. `any-escape` =
-`as any` / `dynamic` / `void*` / `reinterpret_cast` / `unsafe`).
+Language-agnostic. LoC and hashing work on **any** text source and `paths` are plain globs,
+so it covers **Python, TypeScript/JS, Rust, C#/.NET, C/C++, Go, Java, Swift**, and more.
+Build/test/generated trees are excluded out of the box (`target/`, `bin/`, `obj/`,
+`node_modules/`, `cmake-build*`, `__pycache__/`, `dist/`, `*.d.ts`, `*.Designer.cs`, …).
+The rubric names *behaviors*, not syntax — `reference/STANDARDS.md` maps each smell to its
+per-language form (e.g. `any-escape` = `as any` / `dynamic` / `void*` / `reinterpret_cast`
+/ `unsafe`).
 
 ## Requirements
 
-- **Python 3** (standard library only — no `pip install`, no external packages).
-- **An AI coding agent** to drive the audit/fix/test steps — **Claude Code** (native
-  skill) or **any other agent that can read instructions and spawn sub-tasks**, e.g.
-  OpenAI **Codex** (see [Using with Codex / other agents](#using-with-codex--other-agents)).
+- **Python 3** — standard library only. No `pip install`, no external packages.
+- **An AI coding agent** to drive the audit/fix/test steps: **Claude Code** (native skill)
+  or **any agent that reads instructions and spawns sub-tasks**, e.g. OpenAI **Codex**
+  (see [Using with Codex](#using-with-codex--other-agents)).
 - A browser to open the generated HTML. That's it.
 
 ## Install
 
-A skill is just a folder under `~/.claude/skills/`. Clone this repo into it:
+A Claude Code skill is just a folder under `~/.claude/skills/`:
 
 ```bash
-git clone <this-repo-url> ~/.claude/skills/codemap
+git clone https://github.com/Asixa/codemap-skill ~/.claude/skills/codemap
 ```
 
-(Windows PowerShell: `git clone <url> $env:USERPROFILE\.claude\skills\codemap`.)
+(Windows PowerShell: `git clone https://github.com/Asixa/codemap-skill $env:USERPROFILE\.claude\skills\codemap`.)
 
-Restart Claude Code (or start a new session). The skill appears as `/codemap`.
+Restart Claude Code (or start a new session). The skill appears as **`/codemap`**.
 
 ## Usage
 
-Talk to Claude in natural language, or use the subcommands. Claude reads `SKILL.md`
-and runs the scripts; the **audit / fix / test** steps spawn independent subagents.
+Talk to Claude in plain language, or use the subcommands. On the first run, codemap asks
+your preferences (UI language, output location, project title) and saves them to
+`<project>/.codemap/config.json`. Everything it produces lives in `<project>/.codemap/`.
 
 | Command | Does |
 |---|---|
-| `/codemap generate` | first build: decompose → scan → audit every module → render |
-| `/codemap check` | read-only: is the map stale? lists drifted / new / deleted modules |
-| `/codemap update` | incremental: re-audit only changed modules, re-render |
-| `/codemap test <module>` | generate tests (regression net) for a module |
-| `/codemap fix <module>` | regression-gated fix: lock baseline → fix → independent acceptance → re-score |
+| `/codemap generate` | first build: ask prefs → decompose into modules → scan → audit every module → render |
+| `/codemap check` | read-only: is the map stale? shows commits since last run + drifted / new / deleted modules |
+| `/codemap update` | incremental + git-aware: re-audit only changed modules, re-render |
+| `/codemap test <module>` | generate a regression-net of tests for a module |
+| `/codemap fix <module>` | regression-gated cleanup: lock baseline → fix → independent acceptance → re-score |
 
-You can also run the deterministic scripts directly (no AI needed for these):
+The deterministic scripts (no AI needed) can also be run by hand:
 
 ```bash
 S=~/.claude/skills/codemap
-# what changed since last audit — incl. a `git` block listing the commits since the
-# last codemap run (meta.rev) and which modules they touched
-python3 $S/scripts/scan.py --root . --state .codemap/modules.json
-# after an update, cache the current HEAD as the new baseline for next time
-python3 $S/scripts/scan.py --root . --state .codemap/modules.json --stamp-rev
-# find modules to act on without reading the whole state (token-cheap, for agents)
+# what changed since last run — a `git` block lists commits + affected modules
+python3 $S/scripts/scan.py  --root . --state .codemap/modules.json
+# cache the current HEAD as the new baseline (end of an update)
+python3 $S/scripts/scan.py  --root . --state .codemap/modules.json --stamp-rev
+# pick targets cheaply, without reading the whole state (for agents)
 python3 $S/scripts/query.py --state .codemap/modules.json --max-grade C --format ids
 python3 $S/scripts/query.py --state .codemap/modules.json --tag dual-format
-# regenerate the HTML + MD from the state
-python3 $S/scripts/render.py --state .codemap/modules.json \
-  --template $S/assets/template.html \
-  --out-html .codemap/architecture-map.html --out-md .codemap/architecture-audit.md
+# regenerate the HTML + report from the state
+python3 $S/scripts/render.py --state .codemap/modules.json --template $S/assets/template.html \
+  --out-html .codemap/codemap.html --out-md .codemap/codemap.md
 ```
 
 > On Windows use `python` instead of `python3`.
 
 ## Using with Codex / other agents
 
-The skill mechanism is Claude-specific, but the **engine is tool-agnostic**: the four
-scripts are deterministic stdlib Python, and the workflow + rubric are plain Markdown
-(`SKILL.md`, `reference/STANDARDS.md`). Any capable agent can drive it.
+The skill mechanism is Claude-specific, but the **engine is tool-agnostic** — four
+deterministic stdlib-Python scripts plus a Markdown workflow and rubric. **OpenAI Codex**
+auto-reads the shipped **`AGENTS.md`**. To use codemap from Codex (or Cursor, Aider, …):
 
-**OpenAI Codex** auto-reads an `AGENTS.md` in the working directory — this repo ships one
-that points Codex at the workflow and rubric. To use codemap from Codex (or Cursor,
-Aider, etc.):
-
-1. Make the tool available — clone this repo somewhere the agent can read it, e.g.
-   `git clone <url> ~/.codemap` (or vendor it into your project).
-2. Tell the agent: *"Use the codemap tool at `<path>` to build/update the architecture
-   map for this project. Follow its `SKILL.md`; score each module with a separate
-   sub-task using `reference/STANDARDS.md`."*
-3. The agent runs the same commands shown above (`scan.py` → per-module audit →
-   `apply_audit.py` → `render.py`), using `query.py` to pick targets cheaply.
-
-The deterministic parts (scan / query / render / apply_audit) you can also run **by
-hand** with no agent at all — only the *scoring*, *fixing*, and *test-writing* need a
-model, and those just follow `reference/STANDARDS.md`.
+1. Clone this repo somewhere the agent can read, e.g. `git clone <url> ~/.codemap`.
+2. Tell the agent: *"Use the codemap tool at `<path>` to map/audit this project — follow
+   its `SKILL.md`; score each module with a separate sub-task per `reference/STANDARDS.md`."*
+3. It runs the same `scan → audit → apply_audit → render` loop, using `query.py` to target.
 
 ## How it works
 
 ```
-modules.json  ──scan.py──▶  + LoC & content hash per module (stale = hash != auditedHash)
-     │                       (decomposition + descriptions are authored by the model)
+modules.json  ──scan.py──▶  + LoC, content hash & git diff (stale = hash != auditedHash)
+     │                       (decomposition + module descriptions: authored by the agent)
      │◀─apply_audit.py──   one INDEPENDENT subagent's score per module (fixed rubric)
      │◀─query.py──────────  token-cheap targeting (by grade / tag / severity / staleness)
-     └──render.py────────▶  architecture-map.html + architecture-audit.md
+     └──render.py────────▶  codemap.html + codemap.md
 ```
 
-- **Four separate subagent roles, never merged**: *auditor* (scores), *test-author*
-  (writes tests), *fixer* (changes code), *acceptance/verifier* (proves no regression).
-  A `fix` is accepted only when an independent acceptance subagent shows the pre-fix
-  green tests are still green and the build is clean.
-- Tests are excluded from a module's audit scope (they're the regression net, tracked
-  separately in the module's `tests` field).
+`modules.json` is the source of truth (commit it for an audit history); the HTML/MD are
+pure projections, regenerated by `render.py`. **Four separate subagent roles, never
+merged:** *auditor* (scores), *test-author* (writes tests), *fixer* (changes code),
+*acceptance/verifier* (proves no regression). Tests are the regression net and are kept
+out of a module's own audit scope.
+
+## Customizing the standard (capture *your* "屎山")
+
+The scoring standard is **data, not code** (`reference/standard.json`: rubric, severities,
+coupling, and issue tags with descriptions). Open the **Standard** page in the map → **Edit**
+→ tweak descriptions, **add your own tags**, then **Export** to
+`<project>/.codemap/standard.json`. Custom tags flow through the whole map and are used by
+future audits. The prose version + the exact subagent prompt live in `reference/STANDARDS.md`.
 
 ## Repository layout
 
 ```
 codemap/
-  SKILL.md                 # the orchestration instructions Claude reads
-  README.md                # this file
+  SKILL.md          # the orchestration the agent reads
+  AGENTS.md         # entry point for Codex / other agents
+  README.md
+  LICENSE           # MIT
   reference/
-    STANDARDS.md           # the scoring rubric, smell taxonomy, severity, subagent prompts
-    DATA_MODEL.md          # the modules.json schema
-  scripts/                 # deterministic, stdlib-only Python
-    scan.py                # LoC + content hash + staleness report
-    query.py               # filter modules (grade/tag/severity/...) → ids/paths/findings
-    apply_audit.py         # merge one subagent's audit result into the state
-    render.py              # modules.json → HTML + MD
+    STANDARDS.md    # scoring rubric, smell taxonomy, severities, subagent prompts
+    DATA_MODEL.md   # modules.json schema
+    standard.json   # the machine-readable default standard (overridable per project)
+  scripts/          # deterministic, stdlib-only Python
+    scan.py         # LoC + content hash + git diff + staleness
+    query.py        # filter modules (grade/tag/severity/…) → ids/paths/findings
+    apply_audit.py  # merge one subagent's audit into the state
+    render.py       # modules.json → HTML + report
   assets/
-    template.html          # the interactive map shell (data injected at render time)
+    template.html   # the interactive map shell (data injected at render time)
+  examples/         # the screenshots above
 ```
 
-## Customizing the standard (capture your own "what's a problem")
+## License
 
-The standard is **data, not code** — it lives in `reference/standard.json` (rubric,
-severities, coupling, and the issue tags with descriptions). Two ways to customize:
+[MIT](LICENSE) © 2026 Xingyu Chen.
 
-- **In the map**: open the **Standard** page (header button), click **Edit**, change any
-  description, add your own tags (`+ Tag`), then **Export** → save the downloaded
-  `standard.json` to `<project>/.codemap/standard.json`. Edits are kept in the
-  browser until you export. Custom tags flow through the whole map (cards, filters,
-  report) and are used by future audits.
-- **By file**: copy `reference/standard.json` to `<project>/.codemap/standard.json`
-  and edit it. `render.py` prefers the project file over the skill default.
+---
 
-The prose version + the exact subagent audit prompt live in `reference/STANDARDS.md`
-(keep the two in sync when changing the shipped defaults).
-
-## "Fix this" buttons & automation
-
-Each module's detail panel has a **Copy fix prompt** button — it copies `/codemap fix
-<module>` to the clipboard for you to paste into Claude Code (or adapt for Codex). The
-page intentionally does **not** auto-launch an agent: a generated static HTML has no
-privileged channel to the Claude CLI/agent, and auto-launching the CLI is fragile and
-increasingly restricted. Copy-to-clipboard is the robust, future-proof bridge.
-
-## Notes
-
-- `modules.json` is meant to be **committed** with your project — it's the audit history
-  and what makes diffs/incrementality reviewable.
-- The engine is **language-agnostic**: `paths` globs and LoC counting work for any stack;
-  the audit subagent reads whatever code the globs point at.
+<sub>Keywords: code quality · technical debt · refactoring · code janitor · legacy code
+cleanup · architecture visualization · dependency graph · static analysis · code audit ·
+Claude Code skill · Codex · AI agents · spaghetti code · 屎山.</sub>
