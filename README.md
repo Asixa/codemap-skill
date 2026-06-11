@@ -43,12 +43,16 @@ run on a schedule.
 
 ## Screenshots
 
-| Select a module — dependencies + audit | Audit report | Editable standard |
-|---|---|---|
-| ![module](examples/02-module.png) | ![report](examples/03-report.png) | ![standard](examples/04-standard.png) |
+**Click any module** to highlight what it calls (downstream) and what depends on it
+(upstream), with its score, smell tags, and `file:line` findings:
 
-- **Click any module** to highlight what it calls (downstream) and what depends on it
-  (upstream), with its score, smell tags, and `file:line` findings.
+![Select a module — dependencies + audit](examples/02-module.png)
+
+The **Audit report** — averages, grade spread, worst offenders, smell-tag frequency, and
+cross-cutting themes:
+
+<img src="examples/03-report.png" width="360" alt="Audit report panel" />
+
 - **Health vs coupling** color modes — problems pop amber/red, healthy modules recede to a
   muted green (colorblind-friendly; the cue is saturation, not just hue).
 - **Filter** by grade (≤ B/C/D/F) or by issue tag; jump straight to the worst offenders.
