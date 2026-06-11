@@ -15,10 +15,40 @@ declares `paths` (a list of globs, relative to the project root). This script:
         empty      — paths match no files (likely deleted / moved)
   * with --write, writes the fresh `loc` and `contentHash` back into the state.
 
+It also reports, when in a git repo, what changed since the last codemap run
+(`meta.rev`): the commits and which modules they touch — so `update` can show recent
+history at a glance and re-audit exactly the affected modules. `--stamp-rev` caches the
+current HEAD into `meta.rev` (run at the end of a successful update/generate).
+
 Output (stdout): a JSON report the orchestrator uses to decide what to re-audit.
 Stdlib only.
 """
-import argparse, glob, hashlib, json, os, sys
+import argparse, glob, hashlib, json, os, subprocess, sys
+
+
+def git(root, *args):
+    try:
+        r = subprocess.run(["git", "-C", root, *args],
+                           capture_output=True, text=True, timeout=15)
+        return r.stdout.strip() if r.returncode == 0 else None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def git_changes_since(root, since):
+    """commits + changed files between `since` and HEAD, or None if unavailable."""
+    head = git(root, "rev-parse", "HEAD")
+    if not head:
+        return None  # not a git repo
+    info = {"head": head, "since": since}
+    if not since or git(root, "rev-parse", "--verify", "--quiet", since + "^{commit}") is None:
+        info["commits"], info["files"] = None, None   # no/unknown baseline → diff everything
+        return info
+    diff = git(root, "diff", "--name-only", since + "..HEAD") or ""
+    log = git(root, "log", "--pretty=format:%h %s", since + "..HEAD") or ""
+    info["files"] = [f for f in diff.splitlines() if f.strip()]
+    info["commits"] = [c for c in log.splitlines() if c.strip()]
+    return info
 
 DEFAULT_EXCLUDES = [
     # vcs / editor
@@ -74,11 +104,17 @@ def module_stats(root, module, excludes):
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # commit messages may be non-ASCII
+    except (AttributeError, ValueError):
+        pass
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=".", help="project root")
     ap.add_argument("--state", required=True, help="path to modules.json")
     ap.add_argument("--write", action="store_true",
                     help="write fresh loc + contentHash back into the state")
+    ap.add_argument("--stamp-rev", action="store_true",
+                    help="cache current git HEAD into meta.rev (run at end of a successful update)")
     args = ap.parse_args()
 
     state = json.load(open(args.state, encoding="utf-8"))
@@ -87,6 +123,7 @@ def main():
 
     buckets = {"fresh": [], "stale": [], "unaudited": [], "empty": []}
     union_files = {}
+    file_index = {}  # repo-relative path -> [module ids] (for git-change → module mapping)
     for m in state.get("modules", []):
         loc, chash, nfiles = module_stats(root, m, excludes)
         m["loc"] = loc
@@ -95,6 +132,7 @@ def main():
         for p, rp in iter_files(root, (m.get("paths") or []),
                                 list(excludes) + list(m.get("exclude", []))):
             union_files[rp] = p
+            file_index.setdefault(rp, []).append(m["id"])
         if nfiles == 0:
             buckets["empty"].append(m["id"])
         elif not m.get("auditedHash") or m.get("score") is None:
@@ -112,7 +150,28 @@ def main():
         except OSError:
             pass
 
-    if args.write:
+    # git: what changed since the last codemap run (meta.rev)?
+    since = state.get("meta", {}).get("rev")
+    gc = git_changes_since(root, since)
+    git_report = None
+    changed_modules = []
+    if gc is not None:
+        if gc.get("files") is None:
+            git_report = {"head": gc["head"], "since": since,
+                          "note": "no/unknown baseline rev — treat all unaudited/stale as the change set"}
+        else:
+            for f in gc["files"]:
+                for mid in file_index.get(f, []):
+                    if mid not in changed_modules:
+                        changed_modules.append(mid)
+            git_report = {"head": gc["head"], "since": since,
+                          "commits": gc["commits"], "commit_count": len(gc["commits"]),
+                          "changed_files": len(gc["files"]),
+                          "changed_modules": sorted(changed_modules)}
+
+    if args.stamp_rev and gc and gc.get("head"):
+        state.setdefault("meta", {})["rev"] = gc["head"]
+    if args.write or args.stamp_rev:
         meta = state.setdefault("meta", {})
         meta["tracked_loc"] = tracked_loc
         meta["tracked_files"] = len(union_files)
@@ -127,6 +186,7 @@ def main():
         "needs_audit": needs,
         "needs_audit_count": len(needs),
         "up_to_date": len(needs) == 0 and not buckets["empty"],
+        "git": git_report,
         **buckets,
     }
     print(json.dumps(report, ensure_ascii=False, indent=1))

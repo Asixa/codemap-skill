@@ -13,7 +13,8 @@ subagents edit it) and re-render.
                                         //   should be authored in this language. ids/labels stay.
     "subtitle": "short tagline",        // optional header sub-line (write in meta.lang)
     "generatedAt": "2026-01-01",
-    "rev": "abc1234",                   // git rev these artifacts reflect (optional)
+    "rev": "abc1234",                   // git HEAD at the last codemap run (the baseline
+                                        //   `update`/`check` diff from; set by scan.py --stamp-rev)
     "htmlPath": "docs/architecture-map.html",  // for reciprocal links
     "mdPath": "docs/architecture-audit.md",
     "spineDesc": "A user edits … → … → persistence.",  // shown on the spine view

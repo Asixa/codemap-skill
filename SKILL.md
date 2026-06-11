@@ -130,8 +130,9 @@ Use when no `modules.json` exists yet.
    concurrency; chunk if needed).
 4. **Synthesize `reportThemes`** (4–7 cross-cutting patterns) from the collected findings
    and write them into `modules.json`.
-5. **Render:** run the render command. Report the result: avg score, grade spread, worst
-   offenders, and the two artifact paths.
+5. **Render:** run the render command. Then **stamp the git baseline** so future updates
+   can diff from here: `python3 scripts/scan.py --root <proj> --state <state> --stamp-rev`.
+   Report the result: avg score, grade spread, worst offenders, and the two artifact paths.
 
 ## Command: `check` (is the map current? — read-only)
 
@@ -140,24 +141,34 @@ Use when the user asks "is the architecture map up to date / still accurate?".
 1. `python3 scripts/scan.py --root <proj> --state <state>` (no `--write`).
 2. Read the JSON: report `up_to_date`, the **stale** list (code changed since audit),
    **unaudited** (new modules with no score), and **empty** (paths match nothing →
-   likely deleted modules). Do **not** modify anything. Tell the user exactly which
-   modules drifted and offer to run `update`.
+   likely deleted modules). The `git` block shows the **commits since the last codemap
+   run** (`meta.rev`) and which modules they touched — surface those commits so the user
+   sees recent history at a glance. Do **not** modify anything; offer to run `update`.
 3. Also sanity-check for *new* capabilities not yet in `modules.json` (a quick look at
    new top-level dirs / large new files). New modules are model-discovered, not scan-detected.
 
-## Command: `update` (incremental refresh)
+## Command: `update` (incremental refresh, git-aware)
 
-Use after code changes, or when `check` found drift. Only re-audits what changed.
+Use after code changes, or when `check` found drift. Re-audits only what changed, and
+uses git to show recent history and scope the work.
 
 1. **Reconcile structure first** (cheap): if modules were added/removed/renamed, edit
    `modules.json` (add new module entries with `paths`; drop `empty` ones; fix globs).
-2. `python3 scripts/scan.py --root <proj> --state <state> --write` → get `needs_audit`
-   (= stale + unaudited).
-3. **Re-audit only those modules**, each with its own independent subagent (same
-   protocol as `generate` step 3). Apply each via `apply_audit.py`. Fresh modules keep
-   their cached audit untouched — that is the whole point of the content hash.
+2. **Scan + git diff:** `python3 scripts/scan.py --root <proj> --state <state> --write`.
+   Read the report's **`git`** block: `commits` (since `meta.rev`, the last run) and
+   `changed_modules` (modules those commits touched). Show the user the recent commits —
+   this is the fast "what changed" view. The audit set is `needs_audit` (= stale +
+   unaudited); content-hash staleness already includes everything `changed_modules` lists
+   (plus any uncommitted edits), so re-audit `needs_audit`. If `git` is null the project
+   isn't a git repo — fall back to content-hash staleness only.
+3. **Re-audit only those modules**, each with its own independent subagent (same protocol
+   as `generate` step 3). Apply each via `apply_audit.py --id <id> --rev <head>`. Fresh
+   modules keep their cached audit — that is the whole point of the content hash.
 4. **Refresh `reportThemes`** if the changes are material (otherwise keep them).
-5. **Render.** Summarize what changed: which modules were re-scored and how their score moved.
+5. **Render**, then **stamp the baseline**:
+   `python3 scripts/scan.py --root <proj> --state <state> --stamp-rev` caches the current
+   HEAD into `meta.rev`, so the next `update`/`check` diffs from here. Summarize which
+   modules were re-scored and how their score moved, with the commits that caused it.
 
 ## Command: `test <module>` (generate tests)
 

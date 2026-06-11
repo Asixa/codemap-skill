@@ -82,8 +82,11 @@ You can also run the deterministic scripts directly (no AI needed for these):
 
 ```bash
 S=~/.claude/skills/codemap
-# what changed since last audit
+# what changed since last audit — incl. a `git` block listing the commits since the
+# last codemap run (meta.rev) and which modules they touched
 python3 $S/scripts/scan.py --root . --state .claude/codemap/modules.json
+# after an update, cache the current HEAD as the new baseline for next time
+python3 $S/scripts/scan.py --root . --state .claude/codemap/modules.json --stamp-rev
 # find modules to act on without reading the whole state (token-cheap, for agents)
 python3 $S/scripts/query.py --state .claude/codemap/modules.json --max-grade C --format ids
 python3 $S/scripts/query.py --state .claude/codemap/modules.json --tag dual-format

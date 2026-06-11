@@ -28,6 +28,10 @@ GRADE_BOUND = {"A": 101, "B": 90, "C": 75, "D": 60, "F": 40}
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # findings/descriptions may be non-ASCII
+    except (AttributeError, ValueError):
+        pass
     ap = argparse.ArgumentParser(description="filter modules.json for agents")
     ap.add_argument("--state", required=True)
     ap.add_argument("--max-grade", choices=list(GRADE_BOUND),
