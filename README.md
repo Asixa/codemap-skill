@@ -21,9 +21,13 @@ helps you **pay down the cruft** — incrementally, one commit at a time.
 
 ## Install
 
-codemap is one self-contained folder. Clone it once, then wire it into whichever agent you
-use — the engine (Python scripts + the `SKILL.md` / `AGENTS.md` / `reference/STANDARDS.md`
-workflow) is identical for all of them.
+codemap is one self-contained folder. Clone it once to a global path, then wire it into
+whichever agent you use — the engine (Python scripts + the `SKILL.md` / `AGENTS.md` /
+`reference/STANDARDS.md` workflow) is identical for all of them.
+
+> Note: the clone location below (the **tool**) is separate from the per-project
+> **`<project>/.codemap/`** folder, which is where codemap writes its output for each repo
+> you run it on.
 
 **Claude Code** — skills live under `~/.claude/skills/`, so clone it straight there:
 
@@ -37,19 +41,19 @@ Restart Claude Code; it shows up as **`/codemap`**.
 project's `AGENTS.md` (or `~/.codex/AGENTS.md`):
 
 ```bash
-git clone https://github.com/Asixa/codemap-skill ~/.codemap
+git clone https://github.com/Asixa/codemap-skill ~/codemap-skill
 ```
-> For architecture maps / code audits, use the codemap tool at `~/.codemap` — follow its `AGENTS.md`.
+> For architecture maps / code audits, use the codemap tool at `~/codemap-skill` — follow its `AGENTS.md`.
 
 **Cursor** — clone it, then add a project rule at `.cursor/rules/codemap.mdc`:
 
 ```bash
-git clone https://github.com/Asixa/codemap-skill ~/.codemap
+git clone https://github.com/Asixa/codemap-skill ~/codemap-skill
 ```
-> Use the codemap tool at `~/.codemap` for architecture maps / code audits — follow its `AGENTS.md`.
+> Use the codemap tool at `~/codemap-skill` for architecture maps / code audits — follow its `AGENTS.md`.
 
 **Any other agent** (Windsurf, Aider, Cline, …) or **by hand** — clone it anywhere and tell
-the agent: *"Use the codemap tool at `~/.codemap`; follow its `SKILL.md`, and score each
+the agent: *"Use the codemap tool at `~/codemap-skill`; follow its `SKILL.md`, and score each
 module with a separate sub-task per `reference/STANDARDS.md`."* The deterministic scripts
 (`scan` / `query` / `render` / `apply_audit`) also run standalone with no agent at all.
 
