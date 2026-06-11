@@ -9,11 +9,13 @@ helps you **pay down the cruft** — incrementally, one commit at a time.
 ![Python 3 · stdlib only](https://img.shields.io/badge/python-3%20·%20stdlib%20only-3776ab)
 ![language agnostic](https://img.shields.io/badge/langs-Py%20·%20TS%20·%20Rust%20·%20C%23%20·%20C%2B%2B-555)
 ![license MIT](https://img.shields.io/badge/license-MIT-blue)
+[![tests](https://github.com/Asixa/codemap-skill/actions/workflows/test.yml/badge.svg)](https://github.com/Asixa/codemap-skill/actions/workflows/test.yml)
 
 > Every codebase accumulates cruft over time — monkeypatches, silent fallbacks, dead
 > "legacy" paths, half-finished stubs, copy-pasted duplication, god-files, and valueless
 > glue. **codemap surfaces that rot, ranks it, and hands an AI agent a clear punch-list to
-> fix it** — with a regression-gated fix loop so the cleanup never breaks your build.
+> fix it** — with a regression-gated fix loop: a change is accepted only when an
+> independent check shows your tests still pass.
 
 ![architecture map](examples/01-map.png)
 
@@ -63,11 +65,23 @@ Most "architecture diagram" tools draw *files and imports*. codemap is different
 - **Incremental + git-aware.** A per-module content hash + the last-run commit mean re-runs
   only re-audit what changed, and `update` shows you the **commits since last time** and
   which modules they touched.
-- **Cleanup that can't regress.** `fix` runs a four-role loop — lock a test baseline →
-  fix → an **independent acceptance check** proves the pre-fix tests still pass → re-score.
+- **Regression-gated cleanup.** `fix` runs a four-role loop — lock a test baseline →
+  fix → an **independent acceptance check** must show the pre-fix tests still pass → re-score.
 
 It's the maintenance pass you never have time to do, turned into something an agent can
 run on a schedule.
+
+> **What it is (and isn't).** codemap is an agent-orchestration framework that makes the
+> map + audit *consistent and reviewable* — deterministic scripts handle LoC, hashing,
+> staleness, filtering and rendering, and a fixed rubric forces `file:line` evidence and
+> an independent audit per module. But the **module decomposition and the scores are model
+> judgments**, not the output of a deterministic static analyzer. Treat the map as a
+> high-quality, reviewable starting point — and commit `modules.json` so every score is
+> diffable in PRs.
+
+Want to see it before installing? Open
+**[`examples/sample-project/codemap.html`](examples/sample-project/codemap.html)** — a
+fully rendered demo (the sample used for the screenshots).
 
 ## Screenshots
 
@@ -155,11 +169,15 @@ codemap/
   scripts/          # deterministic, stdlib-only Python
     scan.py         # LoC + content hash + git diff + staleness
     query.py        # filter modules (grade/tag/severity/…) → ids/paths/findings
-    apply_audit.py  # merge one subagent's audit into the state
+    apply_audit.py  # validate + merge one subagent's audit into the state
     render.py       # modules.json → HTML + report
   assets/
     template.html   # the interactive map shell (data injected at render time)
-  examples/         # the screenshots above
+  tests/            # stdlib unittest golden tests for the scripts
+  examples/
+    01-map.png …    # the screenshots above
+    sample-project/ # a fully rendered demo (modules.json + codemap.html/md)
+  .github/workflows/test.yml   # CI: py_compile + unittest + render + JS syntax check
 ```
 
 ## License

@@ -91,10 +91,10 @@ per-module subagent loop — never load the full `modules.json` just to pick tar
 
 ## Hard rules
 
-1. **Every module score comes from an independent subagent.** One subagent audits one
+1. **Every module score comes from an independent sub-task.** One sub-task audits one
    module against its `paths`, using the prompt in `reference/STANDARDS.md`. Never score
-   inline in the main thread; never copy one module's score to another. Spawn them in
-   parallel (one message, multiple Agent calls — Explore or general-purpose).
+   inline in the main thread; never copy one module's score to another. Run them in
+   parallel where the platform supports it (see *Capabilities & platform mapping*).
 2. **Scripts are deterministic; only decomposition, auditing, and theme-synthesis are
    model work.** `scan.py` / `render.py` / `apply_audit.py` never make quality judgments.
 3. **`modules.json` is the only thing you edit by hand** (structure/decomposition).
@@ -111,14 +111,29 @@ per-module subagent loop — never load the full `modules.json` just to pick tar
    build/typecheck is clean. A fixer may not write/edit its own tests or grade its own
    work — that defeats the gate.
 
+## Capabilities & platform mapping
+
+This workflow needs three capabilities. Each has a graceful fallback, so it runs on any
+agent — only the convenience changes, never the rules above.
+
+| Capability | Native (Claude Code) | Codex / Cursor | Fallback if unavailable |
+|---|---|---|---|
+| **Independent sub-tasks** (one auditor/fixer per module) | `Agent` tool, many in parallel | their subagent/task tool | Audit modules **one at a time in the main thread** — still one module per pass against the rubric, never batch-scoring. Slower, fully valid. |
+| **Structured result** (the audit JSON) | `schema` on the Agent call | tool-specific schema, or just ask for JSON | Ask the sub-task to return **only** the JSON object; `apply_audit.py` validates it and rejects malformed/inconsistent results — no schema feature required. |
+| **Ask the user** (preferences on `init`) | `AskUserQuestion` | tool's prompt UI | Ask in plain text, or apply defaults (`lang=en`, output `.codemap/`, title = repo folder name) and tell the user how to change them in `.codemap/config.json`. |
+
+The non-negotiables (independent per-module audit, deterministic scripts, the four-role
+fix gate) hold on every platform; the table only changes *how* you spawn the work.
+
 ---
 
 ## Command: `init` (first build)
 
 Use when no `modules.json` exists yet. (Also accepts `generate` as an alias.)
 
-0. **Ask the user for preferences first** (use the AskUserQuestion tool), then save them to
-   `<project>/.codemap/config.json`:
+0. **Ask the user for preferences first** (use `AskUserQuestion` if available, else just ask
+   in plain text; or apply the defaults from *Capabilities & platform mapping*), then save
+   them to `<project>/.codemap/config.json`:
    - **UI language** — `en` or `zh` (localizes the map chrome + report; module names are
      never translated). → `meta.lang`.
    - **Output location** — where the HTML/MD go. Default `.codemap/` (kept with the tool

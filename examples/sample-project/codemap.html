@@ -201,6 +201,11 @@ const BANDS = DATA.bands || [];
 const SPINE = DATA.spine || [];
 const REPORT_THEMES = DATA.reportThemes || [];
 const META = DATA.meta || {};
+/* HTML-escape every string that comes from modules.json (labels, descriptions,
+   findings, tags, paths, meta, themes, standard) before it enters innerHTML. The only
+   trusted HTML is the template's own i18n strings (tl) and the structural markup. */
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>(
+  {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 let BAD_TAGS = new Set(["monkeypatch","fallback","legacy","dual-format","stub","fake-output","bloat","duplication","glue","silent-except","silent-catch","any-escape","over-fit","god-component","placeholder"]);
 
 /* ---------- i18n: display language via meta.lang (module names never translated) ---------- */
@@ -325,9 +330,9 @@ const svg=document.getElementById("edges");
 const detail=document.getElementById("detail");
 const cardEl={};
 
-document.getElementById("projTitle").innerHTML = (META.project||"Project")+` <span>${tl('mapSuffix')}</span>`;
-document.getElementById("subLine").innerHTML = (META.subtitle||tl('sub'))+
-  (META.mdPath?`  ·  <a href="${META.mdPath.split('/').pop()}" style="color:var(--accent);text-decoration:none">${tl('report')} ↗</a>`:"");
+document.getElementById("projTitle").innerHTML = esc(META.project||"Project")+` <span>${tl('mapSuffix')}</span>`;
+document.getElementById("subLine").innerHTML = esc(META.subtitle||tl('sub'))+
+  (META.mdPath?`  ·  <a href="${esc(META.mdPath.split('/').pop())}" style="color:var(--accent);text-decoration:none">${tl('report')} ↗</a>`:"");
 /* localize static header chrome (module names/labels are never translated) */
 document.querySelector(".scrollnote").textContent = tl("scrollNote");
 document.getElementById("search").placeholder = tl("searchPh");
@@ -340,14 +345,14 @@ document.getElementById("tagFilter").options[0].textContent = tl("anyIssue");
 BANDS.forEach(b=>{
   if(b.wire){
     const w=document.createElement("div"); w.className="wire";
-    w.innerHTML=`<div class="line"></div><div class="lbl">${b.t||"boundary"}</div><div class="line"></div>`;
+    w.innerHTML=`<div class="line"></div><div class="lbl">${esc(b.t||"boundary")}</div><div class="line"></div>`;
     board.appendChild(w); return;
   }
   const band=document.createElement("div"); band.className=`band tier-${b.tier||""}`;
   const items=M.filter(m=>m.band===b.id);
   const gloc=items.reduce((a,m)=>a+(m.loc||0),0);
   const head=document.createElement("div"); head.className="band-head";
-  head.innerHTML=`<span class="t">${b.t||b.id}</span><span class="d">${b.d||""}</span>`+
+  head.innerHTML=`<span class="t">${esc(b.t||b.id)}</span><span class="d">${esc(b.d||"")}</span>`+
     `<span class="num">${items.length}</span><span class="num gloc">${gloc.toLocaleString()} ${tl('locUnit')}</span>`;
   band.appendChild(head);
   const body=document.createElement("div"); body.className="band-body";
@@ -357,7 +362,7 @@ BANDS.forEach(b=>{
     if(m.score!=null) n.style.setProperty("--h",healthColor(m.score));
     const chip=m.score!=null?`<span class="chip">${m.score}</span>`:"";
     const locStr=m.loc!=null?` · ${Number(m.loc).toLocaleString()} ${tl('locUnit')}`:"";
-    n.innerHTML=`${chip}<div class="lab">${m.label}</div><div class="meta">${m.grade||"–"} · ${(m.deps||[]).length}→ ${dependentsOf(m.id).length}←${locStr}</div>`;
+    n.innerHTML=`${chip}<div class="lab">${esc(m.label)}</div><div class="meta">${esc(m.grade||"–")} · ${(m.deps||[]).length}→ ${dependentsOf(m.id).length}←${locStr}</div>`;
     n.addEventListener("click",e=>{e.stopPropagation();select(m.id)});
     body.appendChild(n); cardEl[m.id]=n;
   });
@@ -407,33 +412,34 @@ function showSpine(){
   for(let i=0;i<SPINE.length-1;i++){const a=cardEl[SPINE[i]],b=cardEl[SPINE[i+1]];
     if(a&&b){a.classList.add("sel");b.classList.add("sel");edge(a,b,"out");}}
   detail.innerHTML=`<div class="detail"><div class="kicker">${tl('criticalPath')}</div><h2>${tl('spineTitle')}</h2>
-    <p class="desc">${META.spineDesc||"The system's critical request path, end to end."}</p>
+    <p class="desc">${esc(META.spineDesc||"The system's critical request path, end to end.")}</p>
     <div class="reltitle">${tl('path')}</div>
-    <div class="rel">${SPINE.map(id=>byId[id]?`<button data-go="${id}"><span>${byId[id].label}</span><span class="bnd">${byId[id].coupling}</span></button>`:"").join("")}</div>
+    <div class="rel">${SPINE.map(id=>byId[id]?`<button data-go="${esc(id)}"><span>${esc(byId[id].label)}</span><span class="bnd">${esc(byId[id].coupling)}</span></button>`:"").join("")}</div>
     ${legendHTML()}</div>`;
   bindGo();
 }
 function auditHTML(m){
   if(m.score==null) return "";
   const col=healthColor(m.score);
-  const tags=(m.tags||[]).map(t=>`<span class="tg ${t==='clean'?'ok':(BAD_TAGS.has(t)?'bad':'')}">${tagLabel(t)}</span>`).join("");
+  const tags=(m.tags||[]).map(t=>`<span class="tg ${t==='clean'?'ok':(BAD_TAGS.has(t)?'bad':'')}">${esc(tagLabel(t))}</span>`).join("");
+  const sevCls=s=>({HIGH:"HIGH",MED:"MED",LOW:"LOW"}[s]||"LOW");
   const fnd=(m.findings||[]).length
-    ? m.findings.map(f=>`<div class="finding sev-${f.sev}"><div class="top"><span class="sev sev-${f.sev}">${f.sev}</span><span class="loc">${f.loc||""}</span></div><div class="txt">${f.text||""}</div></div>`).join("")
+    ? m.findings.map(f=>`<div class="finding sev-${sevCls(f.sev)}"><div class="top"><span class="sev sev-${sevCls(f.sev)}">${esc(f.sev)}</span><span class="loc">${esc(f.loc||"")}</span></div><div class="txt">${esc(f.text||"")}</div></div>`).join("")
     : `<div class="none">${tl('clean')}</div>`;
   return `<div class="reltitle" style="margin-top:6px">${tl('audit')}</div>`+`
     <div class="scorebox"><span class="big" style="color:${col}">${m.score}</span>
-      <span class="gr grade-${m.grade}">${m.grade}</span>
+      <span class="gr grade-${esc(m.grade)}">${esc(m.grade)}</span>
       <span class="bar"><i style="width:${m.score}%;background:${col}"></i></span></div>
     <div class="tagchips">${tags}</div><div class="findings">${fnd}</div>`;
 }
 function renderDetail(m,outs,ins){
-  const li=arr=>arr.length?arr.map(id=>byId[id]?`<button data-go="${id}"><span>${byId[id].label}</span><span class="bnd">${byId[id].band}</span></button>`:"").join(""):`<div class="none">${tl('none')}</div>`;
-  detail.innerHTML=`<div class="detail"><div class="kicker">${bandTitle(m.band)}</div>
-    <h2>${m.label}</h2><div class="path">${m.path||""}</div>
-    <div class="pill-row"><span class="pill cpl">${tl('couplingLbl')}: ${m.coupling}</span>
+  const li=arr=>arr.length?arr.map(id=>byId[id]?`<button data-go="${esc(id)}"><span>${esc(byId[id].label)}</span><span class="bnd">${esc(byId[id].band)}</span></button>`:"").join(""):`<div class="none">${tl('none')}</div>`;
+  detail.innerHTML=`<div class="detail"><div class="kicker">${esc(bandTitle(m.band))}</div>
+    <h2>${esc(m.label)}</h2><div class="path">${esc(m.path||"")}</div>
+    <div class="pill-row"><span class="pill cpl">${tl('couplingLbl')}: ${esc(m.coupling)}</span>
       ${m.loc!=null?`<span class="pill">${Number(m.loc).toLocaleString()} ${tl('locUnit')}</span>`:""}
       <span class="pill">${outs.length} ${tl('deps')}</span><span class="pill">${ins.length} ${tl('dependents')}</span></div>
-    ${m.desc?`<div class="reltitle">${tl('about')}</div><p class="desc">${m.desc}</p>`:""}
+    ${m.desc?`<div class="reltitle">${tl('about')}</div><p class="desc">${esc(m.desc)}</p>`:""}
     ${auditHTML(m)}
     <div class="reltitle"><span class="dotc" style="background:var(--out)"></span>${tl('dependsOn')}</div>
     <div class="rel">${li(outs)}</div>
@@ -461,7 +467,7 @@ function renderIntro(){
   const cores=M.filter(m=>m.coupling==="core");
   detail.innerHTML=`<div class="detail"><div class="empty-hint">${tl('introHint')}</div>
     ${cores.length?`<div class="reltitle" style="margin-top:22px">${tl('coreModules')}</div>
-    <div class="rel">${cores.map(m=>`<button data-go="${m.id}"><span>${m.label}</span><span class="bnd">${m.band}</span></button>`).join("")}</div>`:""}
+    <div class="rel">${cores.map(m=>`<button data-go="${esc(m.id)}"><span>${esc(m.label)}</span><span class="bnd">${esc(m.band)}</span></button>`).join("")}</div>`:""}
     ${legendHTML()}</div>`;
   bindGo();
 }
@@ -480,7 +486,7 @@ function renderReport(){
     <div class="kicker" style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.5px">${tl('qa')} · ${scored.length} ${tl('modulesWord')}</div>
     <h2 style="font-size:18px;margin:5px 0 2px;font-weight:650">${tl('healthReport')}</h2>
     <div class="path" style="color:var(--faint);font-size:11px;margin-bottom:4px">${["monkeypatch","fallback","legacy","stub","bloat","duplication","dual-format"].map(tagLabel).join(" · ")}</div>
-    ${locLine?`<div class="path" style="color:var(--muted);font-size:11px;margin-bottom:2px">${locLine}</div>`:""}
+    ${locLine?`<div class="path" style="color:var(--muted);font-size:11px;margin-bottom:2px">${esc(locLine)}</div>`:""}
     <div class="stat-grid">
       <div class="stat"><div class="n" style="color:${healthColor(avg)}">${avg}</div><div class="l">${tl('avg')}</div></div>
       <div class="stat"><div class="n grade-A">${gc.A}</div><div class="l">A</div></div>
@@ -489,9 +495,9 @@ function renderReport(){
       <div class="stat"><div class="n grade-D" style="color:#e0524b">${gc.D+gc.F}</div><div class="l">D/F</div></div>
     </div>
     <h3>${tl('worst')}</h3>
-    <div class="rel">${worst.map(m=>`<button data-go="${m.id}"><span>${m.label}</span><span class="bnd" style="color:${healthColor(m.score)}">${m.score} · ${m.grade}</span></button>`).join("")}</div>
-    ${topTags.length?`<h3>${tl('commonTags')}</h3><div class="tagchips">${topTags.map(([t,n])=>`<span class="tg bad">${tagLabel(t)} ·${n}</span>`).join("")}</div>`:""}
-    ${REPORT_THEMES.length?`<h3>${tl('themes')}</h3>${REPORT_THEMES.map(([h,b])=>`<p class="theme"><b>${h}.</b> ${b}</p>`).join("")}`:""}
+    <div class="rel">${worst.map(m=>`<button data-go="${esc(m.id)}"><span>${esc(m.label)}</span><span class="bnd" style="color:${healthColor(m.score)}">${m.score} · ${esc(m.grade)}</span></button>`).join("")}</div>
+    ${topTags.length?`<h3>${tl('commonTags')}</h3><div class="tagchips">${topTags.map(([t,n])=>`<span class="tg bad">${esc(tagLabel(t))} ·${n}</span>`).join("")}</div>`:""}
+    ${REPORT_THEMES.length?`<h3>${tl('themes')}</h3>${REPORT_THEMES.map(([h,b])=>`<p class="theme"><b>${esc(h)}.</b> ${esc(b)}</p>`).join("")}`:""}
     <button class="btn clearbtn" id="toMapBtn">${tl('backToMap')}</button></div>`;
   bindGo(); document.getElementById("toMapBtn").addEventListener("click",clearSel);
 }
@@ -513,10 +519,10 @@ function saveStdDraft(){ try{ localStorage.setItem(STD_KEY, JSON.stringify(STDDA
 function langKey(){ return LANG==="zh" ? "zh" : "en"; }
 function renderStd(){
   const ed=STD_EDIT, ce=ed?' contenteditable="true" spellcheck="false"':'';
-  const rubric=STDDATA.rubric.map((x,i)=>`<div class="std-row"><span class="std-badge" style="background:${healthColor(x.score)}">${x.grade}</span><span class="std-range">${x.range}</span><span class="std-desc"${ce} data-k="rubric" data-i="${i}">${stdText(x)}</span></div>`).join("");
-  const sev=STDDATA.severities.map((x,i)=>`<div class="std-row"><span class="std-key"><span class="sev sev-${x.key}">${x.key}</span></span><span class="std-desc"${ce} data-k="sev" data-i="${i}">${stdText(x)}</span></div>`).join("");
-  const tags=STDDATA.tags.map((x,i)=>`<div class="std-row"><span class="std-key"><span class="tg ${x.bad===false?'ok':'bad'}"${ce} data-k="taglabel" data-i="${i}">${LANG==="zh"?(x.labelZh||x.label):x.label}</span></span><span class="std-desc"${ce} data-k="tag" data-i="${i}">${stdText(x)}</span>${ed?`<button class="xrm" data-rm="${i}" title="remove">✕</button>`:''}</div>`).join("");
-  const coup=STDDATA.coupling.map((x,i)=>`<div class="std-row"><span class="std-key" style="font-family:var(--mono);font-size:11.5px;color:var(--ink)">${x.key}</span><span class="std-desc"${ce} data-k="coup" data-i="${i}">${stdText(x)}</span></div>`).join("");
+  const rubric=STDDATA.rubric.map((x,i)=>`<div class="std-row"><span class="std-badge" style="background:${healthColor(x.score)}">${esc(x.grade)}</span><span class="std-range">${esc(x.range)}</span><span class="std-desc"${ce} data-k="rubric" data-i="${i}">${esc(stdText(x))}</span></div>`).join("");
+  const sev=STDDATA.severities.map((x,i)=>`<div class="std-row"><span class="std-key"><span class="sev sev-${esc(x.key)}">${esc(x.key)}</span></span><span class="std-desc"${ce} data-k="sev" data-i="${i}">${esc(stdText(x))}</span></div>`).join("");
+  const tags=STDDATA.tags.map((x,i)=>`<div class="std-row"><span class="std-key"><span class="tg ${x.bad===false?'ok':'bad'}"${ce} data-k="taglabel" data-i="${i}">${esc(LANG==="zh"?(x.labelZh||x.label):x.label)}</span></span><span class="std-desc"${ce} data-k="tag" data-i="${i}">${esc(stdText(x))}</span>${ed?`<button class="xrm" data-rm="${i}" title="remove">✕</button>`:''}</div>`).join("");
+  const coup=STDDATA.coupling.map((x,i)=>`<div class="std-row"><span class="std-key" style="font-family:var(--mono);font-size:11.5px;color:var(--ink)">${esc(x.key)}</span><span class="std-desc"${ce} data-k="coup" data-i="${i}">${esc(stdText(x))}</span></div>`).join("");
   document.getElementById("stdModal").innerHTML=`<div class="sheet">
     <div class="xbtn" style="display:flex;gap:6px">
       <button class="btn ${ed?'active':''}" id="stdEdit">${ed?tl('stdDone'):tl('stdEditBtn')}</button>
@@ -585,10 +591,10 @@ function runFilter(){
   document.getElementById("fcount").textContent=n+" / "+M.length;
   const matches=M.filter(matchesFilter).sort((a,b)=>(a.score??999)-(b.score??999));
   const gl={90:"≤ B",75:"≤ C",60:"≤ D",40:"F"}[filterGrade];
-  const crit=[gl||"",filterTag?("#"+tagLabel(filterTag)):"",searchQuery?('"'+searchQuery+'"'):""].filter(Boolean).join("  ·  ");
+  const crit=[gl||"",filterTag?("#"+esc(tagLabel(filterTag))):"",searchQuery?('"'+esc(searchQuery)+'"'):""].filter(Boolean).join("  ·  ");
   detail.innerHTML=`<div class="detail"><div class="kicker">${tl('filter')}</div>
     <h2>${n} ${tl('modulesWord')}</h2><div class="path">${crit||tl('allWord')}</div>
-    <div class="rel">${matches.map(m=>`<button data-go="${m.id}"><span>${m.label}</span><span class="bnd" style="color:${healthColor(m.score)}">${m.score!=null?m.score+" · "+m.grade:""}</span></button>`).join("")||`<div class="none">${tl('noMatches')}</div>`}</div>
+    <div class="rel">${matches.map(m=>`<button data-go="${esc(m.id)}"><span>${esc(m.label)}</span><span class="bnd" style="color:${healthColor(m.score)}">${m.score!=null?m.score+" · "+esc(m.grade):""}</span></button>`).join("")||`<div class="none">${tl('noMatches')}</div>`}</div>
     <button class="btn clearbtn" id="clearFilterBtn">${tl('clearFilters')}</button></div>`;
   bindGo(); document.getElementById("clearFilterBtn").addEventListener("click",resetFilters);
 }

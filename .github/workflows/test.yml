@@ -1,0 +1,51 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.9", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Compile scripts (syntax)
+        run: python -m py_compile scripts/scan.py scripts/query.py scripts/apply_audit.py scripts/render.py
+
+      - name: Unit + golden tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Render the sample project (smoke)
+        run: >
+          python scripts/render.py
+          --state examples/sample-project/modules.json
+          --template assets/template.html
+          --out-html /tmp/codemap.html --out-md /tmp/codemap.md
+        shell: bash
+
+  template-js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Syntax-check the template's inline JS
+        run: |
+          python - <<'PY'
+          import re
+          html = open("assets/template.html", encoding="utf-8").read()
+          m = re.search(r"<script>(.*)</script>", html, re.S)
+          open("/tmp/_t.js", "w", encoding="utf-8").write(m.group(1).replace("__ARCH_DATA__", "{}"))
+          PY
+          node --check /tmp/_t.js
