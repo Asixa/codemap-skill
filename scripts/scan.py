@@ -21,12 +21,19 @@ Stdlib only.
 import argparse, glob, hashlib, json, os, sys
 
 DEFAULT_EXCLUDES = [
-    "__pycache__", "/node_modules/", "/dist/", "/build/", "/.git/",
-    "/vendor/", ".min.js", ".min.css", "/.venv/", "/venv/",
-    ".pytest", "/coverage/", ".map",
+    # vcs / editor
+    "/.git/", "/.svn/", "/.hg/", "/.idea/", "/.vs/",
+    # build / output dirs (py, js/ts, rust, c#/.net, c/c++/cmake, jvm, swift, next/nuxt)
+    "__pycache__", "/node_modules/", "/dist/", "/build/", "/out/", "/target/",
+    "/bin/", "/obj/", "/cmake-build", "/.gradle/", "/pods/", "/.next/", "/.nuxt/",
+    # deps / vendored / generated
+    "/vendor/", "/third_party/", "/external/", "/.venv/", "/venv/", "/coverage/",
+    ".min.js", ".min.css", ".map", ".pytest", ".d.ts",
+    ".designer.cs", ".g.cs", ".generated.", ".pb.go", "_pb2.py",
     # tests are the regression net, not part of a module's audit scope:
-    "/tests/", "/test/", "/__tests__/", ".test.", ".spec.", "_test.py",
-    "conftest.py", ".stories.",
+    "/tests/", "/test/", "/__tests__/", "/spec/", ".test.", ".spec.",
+    "_test.py", "_test.go", "_test.rs", "conftest.py", ".stories.",
+    ".tests/", "tests.cs",
 ]
 
 

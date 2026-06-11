@@ -31,12 +31,26 @@ The HTML and MD are **generated** from `modules.json` and must never be hand-edi
   recede to a muted green — colorblind-friendly, the cue is saturation not just hue).
 - **Filters**: by grade level (≤ B/C/D/F) and by issue tag; live match count.
 - **Audit report** view: averages, grade spread, worst offenders, cross-cutting themes.
+- **Standard page**: a built-in "Standard" view explaining the score→grade rubric, the
+  finding severities, and every smell tag — so the scores are self-documenting.
 - **i18n**: set `meta.lang` to `"en"` or `"zh"` (module names are never translated).
+
+## Languages
+
+Language-agnostic. The scripts count LoC and hash bytes for **any** text source, and
+`paths` are plain globs, so it works for Python, **TypeScript/JS, Rust, C#/.NET, C/C++**,
+Go, Java, Swift, and more. Build/test/generated trees are excluded out of the box
+(`target/`, `bin/`, `obj/`, `node_modules/`, `cmake-build*`, `__pycache__/`, `dist/`,
+`*.d.ts`, `*.Designer.cs`, …). The audit rubric names *behaviors*, not syntax —
+`reference/STANDARDS.md` maps each smell to its per-language form (e.g. `any-escape` =
+`as any` / `dynamic` / `void*` / `reinterpret_cast` / `unsafe`).
 
 ## Requirements
 
 - **Python 3** (standard library only — no `pip install`, no external packages).
-- **Claude Code** (the skill orchestrates subagents for the audit/fix/test steps).
+- **An AI coding agent** to drive the audit/fix/test steps — **Claude Code** (native
+  skill) or **any other agent that can read instructions and spawn sub-tasks**, e.g.
+  OpenAI **Codex** (see [Using with Codex / other agents](#using-with-codex--other-agents)).
 - A browser to open the generated HTML. That's it.
 
 ## Install
@@ -80,6 +94,28 @@ python3 $S/scripts/render.py --state .claude/codemap/modules.json \
 ```
 
 > On Windows use `python` instead of `python3`.
+
+## Using with Codex / other agents
+
+The skill mechanism is Claude-specific, but the **engine is tool-agnostic**: the four
+scripts are deterministic stdlib Python, and the workflow + rubric are plain Markdown
+(`SKILL.md`, `reference/STANDARDS.md`). Any capable agent can drive it.
+
+**OpenAI Codex** auto-reads an `AGENTS.md` in the working directory — this repo ships one
+that points Codex at the workflow and rubric. To use codemap from Codex (or Cursor,
+Aider, etc.):
+
+1. Make the tool available — clone this repo somewhere the agent can read it, e.g.
+   `git clone <url> ~/.codemap` (or vendor it into your project).
+2. Tell the agent: *"Use the codemap tool at `<path>` to build/update the architecture
+   map for this project. Follow its `SKILL.md`; score each module with a separate
+   sub-task using `reference/STANDARDS.md`."*
+3. The agent runs the same commands shown above (`scan.py` → per-module audit →
+   `apply_audit.py` → `render.py`), using `query.py` to pick targets cheaply.
+
+The deterministic parts (scan / query / render / apply_audit) you can also run **by
+hand** with no agent at all — only the *scoring*, *fixing*, and *test-writing* need a
+model, and those just follow `reference/STANDARDS.md`.
 
 ## How it works
 

@@ -47,6 +47,23 @@ Use these exact tag strings. `clean` is the only positive tag; the rest are nega
 - `over-fit` — hardcoded to one case where a small generalization was expected.
 - `clean` — no material issues.
 
+### The taxonomy is language-agnostic — recognize the per-language form
+
+The tags name *behaviors*, not syntax. Map each to whatever the target language does:
+
+| tag | Python | TS / JS | C# / .NET | Rust | C / C++ |
+|---|---|---|---|---|---|
+| `any-escape` | `# type: ignore`, `Any` | `as any`, `@ts-ignore`, `!` | `dynamic`, `object` casts, `#nullable disable` | `unsafe`, `transmute`, blanket `.unwrap()` | `void*`, `reinterpret_cast`, C-style casts |
+| `silent-except` | `except: pass` | empty `catch {}` | `catch (Exception) {}` | `let _ = x;`, `.ok()`, `unwrap_or_default` to hide | empty `catch`, ignored return codes / `errno` |
+| `monkeypatch` | `setattr`, `sys.modules` | prototype patching, global override | reflection / Harmony patching | macro / `static mut` hacks | `#define` overrides, weak-symbol swap |
+| `dual-format` | `a or b` (snake/camel) | `a ?? b`, `a \|\| b` | nullable + alias props | `Option` chains for two shapes | overloads accepting two layouts |
+| `fallback` | try real then stub | `try/catch` → canned data | `try/catch` fallback | `unwrap_or(fakeDefault)` | `#ifdef` to fake impl |
+
+`legacy`, `stub`, `fake-output`, `bloat`, `god-component`, `duplication`, `glue`,
+`over-fit` are the same idea in every language. Build / test / generated files are out of
+audit scope — the module `paths` globs plus `scan.py` excludes handle that across stacks
+(`target/`, `bin/`, `obj/`, `node_modules/`, `__pycache__/`, `dist/`, …).
+
 Judgement rules:
 - A *documented, bounded* compat shim that deliberately refuses to silently coerce is
   `legacy` at most LOW — do not over-penalize disciplined shims.
