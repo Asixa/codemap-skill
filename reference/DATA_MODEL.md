@@ -15,8 +15,8 @@ subagents edit it) and re-render.
     "generatedAt": "2026-01-01",
     "rev": "abc1234",                   // git HEAD at the last codemap run (the baseline
                                         //   `update`/`check` diff from; set by scan.py --stamp-rev)
-    "htmlPath": "docs/architecture-map.html",  // for reciprocal links
-    "mdPath": "docs/architecture-audit.md",
+    "htmlPath": ".codemap/architecture-map.html",  // output location (for reciprocal links)
+    "mdPath": ".codemap/architecture-audit.md",
     "spineDesc": "A user edits … → … → persistence.",  // shown on the spine view
     "tracked_loc": 184900,             // filled by scan.py --write (union, de-duped)
     "tracked_files": 980,
@@ -107,6 +107,6 @@ independent: a `core` module can be clean (A) and a `low` leaf can be broken (F)
 
 The scoring standard is data, not code: `reference/standard.json` holds the rubric,
 severities, coupling levels, and the issue `tags` (each `{id,label,labelZh,bad,en,zh}`).
-A project overrides it at `<project>/.claude/codemap/modules.json`'s sibling
+A project overrides it at `<project>/.codemap/modules.json`'s sibling
 `standard.json`. The map renders + lets you edit it on the **Standard** page (Export to
 save). Audits must use the project standard's tags when present — including custom ones.

@@ -17,11 +17,16 @@ Three coupled artifacts, kept in sync:
 
 | File | What | Where (default) |
 |---|---|---|
-| `modules.json` | the **source of truth** (modules, deps, coupling, LoC, hash, score, findings) | `<project>/.claude/codemap/` |
-| `architecture-map.html` | self-contained **interactive map** (health coloring, filters, dependency highlighting, audit report) | `<project>/docs/` |
-| `architecture-audit.md` | the written **report** (per-layer scores, LoC table, worst offenders, themes) | `<project>/docs/` |
+| `config.json` | your saved **preferences** (UI language, output location, title) | `<project>/.codemap/` |
+| `modules.json` | the **source of truth** (modules, deps, coupling, LoC, hash, score, findings) | `<project>/.codemap/` |
+| `architecture-map.html` | self-contained **interactive map** (health coloring, filters, dependency highlighting, audit report) | `<project>/.codemap/` |
+| `architecture-audit.md` | the written **report** (per-layer scores, LoC table, worst offenders, themes) | `<project>/.codemap/` |
 
-The HTML and MD are **generated** from `modules.json` and must never be hand-edited.
+Everything lives in **`<project>/.codemap/`** by default. On first run (`generate`) the
+tool asks your preferences — UI language, output location (point it at `docs/` if you
+want the HTML/MD committed/visible), project title — and saves them to
+`.codemap/config.json`. The HTML and MD are **generated** from `modules.json` and must
+never be hand-edited.
 
 ### Interactive map features
 - Layered bands top→bottom along the data-flow; click a module to highlight what it
@@ -84,16 +89,16 @@ You can also run the deterministic scripts directly (no AI needed for these):
 S=~/.claude/skills/codemap
 # what changed since last audit — incl. a `git` block listing the commits since the
 # last codemap run (meta.rev) and which modules they touched
-python3 $S/scripts/scan.py --root . --state .claude/codemap/modules.json
+python3 $S/scripts/scan.py --root . --state .codemap/modules.json
 # after an update, cache the current HEAD as the new baseline for next time
-python3 $S/scripts/scan.py --root . --state .claude/codemap/modules.json --stamp-rev
+python3 $S/scripts/scan.py --root . --state .codemap/modules.json --stamp-rev
 # find modules to act on without reading the whole state (token-cheap, for agents)
-python3 $S/scripts/query.py --state .claude/codemap/modules.json --max-grade C --format ids
-python3 $S/scripts/query.py --state .claude/codemap/modules.json --tag dual-format
+python3 $S/scripts/query.py --state .codemap/modules.json --max-grade C --format ids
+python3 $S/scripts/query.py --state .codemap/modules.json --tag dual-format
 # regenerate the HTML + MD from the state
-python3 $S/scripts/render.py --state .claude/codemap/modules.json \
+python3 $S/scripts/render.py --state .codemap/modules.json \
   --template $S/assets/template.html \
-  --out-html docs/architecture-map.html --out-md docs/architecture-audit.md
+  --out-html .codemap/architecture-map.html --out-md .codemap/architecture-audit.md
 ```
 
 > On Windows use `python` instead of `python3`.
@@ -162,10 +167,10 @@ severities, coupling, and the issue tags with descriptions). Two ways to customi
 
 - **In the map**: open the **Standard** page (header button), click **Edit**, change any
   description, add your own tags (`+ Tag`), then **Export** → save the downloaded
-  `standard.json` to `<project>/.claude/codemap/standard.json`. Edits are kept in the
+  `standard.json` to `<project>/.codemap/standard.json`. Edits are kept in the
   browser until you export. Custom tags flow through the whole map (cards, filters,
   report) and are used by future audits.
-- **By file**: copy `reference/standard.json` to `<project>/.claude/codemap/standard.json`
+- **By file**: copy `reference/standard.json` to `<project>/.codemap/standard.json`
   and edit it. `render.py` prefers the project file over the skill default.
 
 The prose version + the exact subagent audit prompt live in `reference/STANDARDS.md`

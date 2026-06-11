@@ -36,9 +36,9 @@ schema is in **`reference/DATA_MODEL.md`**. Do not improvise scoring or invent t
 **The standard is configurable per project.** A machine-readable copy lives in
 `reference/standard.json` (rubric, severities, coupling, and the tag list with
 descriptions). A project may override it by placing its own `standard.json` next to the
-state file (`<project>/.claude/codemap/standard.json`) — `render.py` picks the project
+state file (`<project>/.codemap/standard.json`) — `render.py` picks the project
 file first, else the skill default, and injects it into the map's editable **Standard**
-page. **Honor the project's tag set:** when `.claude/codemap/standard.json` exists, audit
+page. **Honor the project's tag set:** when `.codemap/standard.json` exists, audit
 modules using *its* tags (including any custom tags the user added) — that is how users
 capture their own definition of a problem. Keep `STANDARDS.md` (the prose + subagent
 prompt) and `standard.json` (the machine copy) in sync if you change the defaults.
@@ -47,12 +47,16 @@ prompt) and `standard.json` (the machine copy) in sync if you change the default
 
 - `SKILL_DIR` = this skill's directory. Scripts are at `SKILL_DIR/scripts/*.py`,
   template at `SKILL_DIR/assets/template.html`. Use python3, stdlib only.
-- Default artifact locations (override if the user/project prefers): state (the data)
-  at `<project>/.claude/codemap/modules.json`; the generated outputs at
-  `<project>/dev_docs/architecture-map.html` and `dev_docs/architecture-audit.md`. The
-  state lives under `.claude/` (tooling data, kept out of the docs tree); only the two
-  human-facing artifacts go in `dev_docs/`. Set `meta.htmlPath` / `meta.mdPath` so the
-  reciprocal links are correct.
+- **Everything lives under `<project>/.codemap/`** — one folder, not `.claude/`:
+  - `config.json` — the user's saved preferences (UI language, output location, title…).
+  - `modules.json` — the state (source of truth).
+  - `standard.json` — optional per-project custom audit standard.
+  - `architecture-map.html` + `architecture-audit.md` — the generated outputs (default).
+
+  The output location is a user preference: if they want the HTML/MD committed/visible,
+  let them point it at `docs/` instead (ask — see `generate` step 0). Set
+  `meta.htmlPath` / `meta.mdPath` to wherever the outputs land so the reciprocal links
+  are correct (both outputs sit in the same dir, so the in-page link uses the basename).
 - A re-render command (run after any state change):
   ```
   python3 SKILL_DIR/scripts/render.py --state <state> \
@@ -111,8 +115,24 @@ per-module subagent loop — never load the full `modules.json` just to pick tar
 
 ## Command: `generate` (first build)
 
-Use when no `modules.json` exists yet.
+Use when no `modules.json` exists yet (this is also "init").
 
+0. **Ask the user for preferences first** (use the AskUserQuestion tool), then save them to
+   `<project>/.codemap/config.json`:
+   - **UI language** — `en` or `zh` (localizes the map chrome + report; module names are
+     never translated). → `meta.lang`.
+   - **Output location** — where the HTML/MD go. Default `.codemap/` (kept with the tool
+     data); offer `docs/` if they want them committed/visible. → `meta.htmlPath` / `meta.mdPath`.
+   - **Project title** (defaults to the repo/folder name) and an optional one-line subtitle,
+     in the chosen language. → `meta.project` / `meta.subtitle`.
+
+   Write `config.json` like:
+   ```json
+   {"lang":"zh","project":"My App","subtitle":"…","outputDir":".codemap",
+    "htmlFile":"architecture-map.html","mdFile":"architecture-audit.md"}
+   ```
+   and apply it to `meta` when you build `modules.json`. Re-read `config.json` on later
+   runs so preferences persist.
 1. **Decompose the project into functional modules.** Explore the tree (parallel Explore
    agents for big repos). Identify capabilities and group them into **bands** (visual
    layers in data-flow order, e.g. UI → stores → transport → │wire│ → app → handlers →

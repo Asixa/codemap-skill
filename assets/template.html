@@ -221,8 +221,8 @@ const I18N = {
    btnStd:"Standard", stdTitle:"Audit standard", stdIntro:"How modules are scored — the same rubric for every module, language, and run. Click Edit to add your own issue tags.",
    stdRubric:"Score → grade", stdSeverity:"Finding severity", stdTags:"Issue tags", stdCoupling:"Coupling (structural, not quality)", close:"Close",
    stdEditBtn:"Edit", stdDone:"Done", stdExport:"Export", stdReset:"Reset", stdAddTag:"+ Tag",
-   stdEditHint:"Editing — changes save in this browser. Export → save as <code>.claude/codemap/standard.json</code> to make them permanent and used by audits.",
-   stdNewTagId:"New tag id (e.g. perf-risk, security):", stdExported:"Saved standard.json — put it in .claude/codemap/",
+   stdEditHint:"Editing — changes save in this browser. Export → save as <code>.codemap/standard.json</code> to make them permanent and used by audits.",
+   stdNewTagId:"New tag id (e.g. perf-risk, security):", stdExported:"Saved standard.json — put it in .codemap/",
    copyFix:"Copy fix prompt", copied:"Copied — paste into Claude Code / Codex",
    trackedLoc:(l,f)=>`${l} tracked LoC · ${f} files` },
  zh:{ mapSuffix:"· 功能架构图", sub:"功能模块 · 调用层级 · 耦合 · 质量评分 · 代码行数",
@@ -240,8 +240,8 @@ const I18N = {
    btnStd:"评判标准", stdTitle:"评判标准", stdIntro:"模块如何打分 —— 所有模块、所有语言、每一次运行都用同一套标准。点「编辑」可加入你自己的问题标签。",
    stdRubric:"分数 → 等级", stdSeverity:"问题严重度", stdTags:"问题标签", stdCoupling:"耦合（结构维度，非质量）", close:"关闭",
    stdEditBtn:"编辑", stdDone:"完成", stdExport:"导出", stdReset:"重置", stdAddTag:"+ 标签",
-   stdEditHint:"编辑中 —— 改动保存在本浏览器。导出 → 存为 <code>.claude/codemap/standard.json</code> 即永久生效并被审计采用。",
-   stdNewTagId:"新标签 id（如 perf-risk、security）：", stdExported:"已生成 standard.json —— 放到 .claude/codemap/ 下",
+   stdEditHint:"编辑中 —— 改动保存在本浏览器。导出 → 存为 <code>.codemap/standard.json</code> 即永久生效并被审计采用。",
+   stdNewTagId:"新标签 id（如 perf-risk、security）：", stdExported:"已生成 standard.json —— 放到 .codemap/ 下",
    copyFix:"复制修复指令", copied:"已复制 —— 粘贴到 Claude Code / Codex",
    trackedLoc:(l,f)=>`${l} 行（已跟踪）· ${f} 个文件` },
 };
@@ -251,7 +251,7 @@ function stdText(o){ return o ? (LANG==="zh" ? (o.zh||o.en||"") : (o.en||o.zh||"
 
 /* ---------- the audit standard — editable, configurable, its own page ----------
    Effective standard = a saved browser draft (user edits), else the injected file
-   (DATA.standard, from .claude/codemap/standard.json or the skill default), else
+   (DATA.standard, from .codemap/standard.json or the skill default), else
    this built-in fallback. Edit it on the Standard page and Export to standard.json
    to make it permanent and used by audits. Custom tags flow through the whole map. */
 const BUILTIN_STD = {
