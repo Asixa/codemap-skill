@@ -32,15 +32,15 @@ git clone https://github.com/Asixa/codemap-skill ~/.claude/skills/codemap
 # OpenAI Codex — global skills folder
 git clone https://github.com/Asixa/codemap-skill ~/.codex/skills/codemap
 
-# Cursor — per-project skills folder (run from the repo root)
-git clone https://github.com/Asixa/codemap-skill .cursor/skills/codemap
+# Cursor — global skills folder
+git clone https://github.com/Asixa/codemap-skill ~/.cursor/skills/codemap
 ```
 
-Restart the tool (or start a new session) and type **`/codemap`**. Cursor also auto-loads
-the Claude/Codex dirs above, so a single global install (`~/.claude/skills` or
-`~/.codex/skills`) covers all three. Any other Skills-compatible agent: drop it in that
-tool's skills folder. An agent **without** Skills support: clone it anywhere and point it
-at the repo's `AGENTS.md`.
+Restart the tool (or start a new session) and type **`/codemap`**. All three also accept a
+**per-project** install — drop the `~/` (e.g. `.cursor/skills/codemap` at the repo root).
+Cursor additionally reads the Claude/Codex skills dirs, and Codex + Cursor also share a
+tool-neutral `~/.agents/skills/`, so one global install can cover several tools. An agent
+**without** Skills support: clone it anywhere and point it at the repo's `AGENTS.md`.
 
 > The skill folder (the tool) is separate from each project's **`<project>/.codemap/`**
 > folder, where codemap writes its output.
