@@ -5,7 +5,7 @@
 helps you **pay down the cruft** — incrementally, one commit at a time.
 
 ![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-f59e0b)
-![works with Codex](https://img.shields.io/badge/works%20with-Codex%20%2F%20any%20agent-7c8794)
+![Agent Skill](https://img.shields.io/badge/Agent%20Skill-Claude%20·%20Codex%20·%20Cursor-7c8794)
 ![Python 3 · stdlib only](https://img.shields.io/badge/python-3%20·%20stdlib%20only-3776ab)
 ![language agnostic](https://img.shields.io/badge/langs-Py%20·%20TS%20·%20Rust%20·%20C%23%20·%20C%2B%2B-555)
 ![license MIT](https://img.shields.io/badge/license-MIT-blue)
@@ -21,42 +21,30 @@ helps you **pay down the cruft** — incrementally, one commit at a time.
 
 ## Install
 
-codemap is one self-contained folder. Clone it once to a global path, then wire it into
-whichever agent you use — the engine (Python scripts + the `SKILL.md` / `AGENTS.md` /
-`reference/STANDARDS.md` workflow) is identical for all of them.
-
-> Note: the clone location below (the **tool**) is separate from the per-project
-> **`<project>/.codemap/`** folder, which is where codemap writes its output for each repo
-> you run it on.
-
-**Claude Code** — skills live under `~/.claude/skills/`, so clone it straight there:
+codemap follows the open **Agent Skills** standard (a folder with a `SKILL.md`), now shared
+by **Claude Code, Codex, and Cursor**. Clone it into the tool's `skills/` folder and it
+auto-discovers as **`/codemap`** — no extra config:
 
 ```bash
+# Claude Code — global skills folder
 git clone https://github.com/Asixa/codemap-skill ~/.claude/skills/codemap
+
+# OpenAI Codex — global skills folder
+git clone https://github.com/Asixa/codemap-skill ~/.codex/skills/codemap
+
+# Cursor — per-project skills folder (run from the repo root)
+git clone https://github.com/Asixa/codemap-skill .cursor/skills/codemap
 ```
 
-Restart Claude Code; it shows up as **`/codemap`**.
+Restart the tool (or start a new session) and type **`/codemap`**. Cursor also auto-loads
+the Claude/Codex dirs above, so a single global install (`~/.claude/skills` or
+`~/.codex/skills`) covers all three. Any other Skills-compatible agent: drop it in that
+tool's skills folder. An agent **without** Skills support: clone it anywhere and point it
+at the repo's `AGENTS.md`.
 
-**OpenAI Codex** — Codex auto-reads `AGENTS.md`. Clone the repo, then add one line to your
-project's `AGENTS.md` (or `~/.codex/AGENTS.md`):
-
-```bash
-git clone https://github.com/Asixa/codemap-skill ~/codemap-skill
-```
-> For architecture maps / code audits, use the codemap tool at `~/codemap-skill` — follow its `AGENTS.md`.
-
-**Cursor** — clone it, then add a project rule at `.cursor/rules/codemap.mdc`:
-
-```bash
-git clone https://github.com/Asixa/codemap-skill ~/codemap-skill
-```
-> Use the codemap tool at `~/codemap-skill` for architecture maps / code audits — follow its `AGENTS.md`.
-
-**Any other agent** (Windsurf, Aider, Cline, …) or **by hand** — clone it anywhere and tell
-the agent: *"Use the codemap tool at `~/codemap-skill`; follow its `SKILL.md`, and score each
-module with a separate sub-task per `reference/STANDARDS.md`."* The deterministic scripts
-(`scan` / `query` / `render` / `apply_audit`) also run standalone with no agent at all.
-
+> The skill folder (the tool) is separate from each project's **`<project>/.codemap/`**
+> folder, where codemap writes its output.
+>
 > Windows PowerShell: replace `~` with `$env:USERPROFILE` (e.g. `$env:USERPROFILE\.claude\skills\codemap`).
 
 ## Why codemap
@@ -157,7 +145,7 @@ future audits. The prose version + the exact subagent prompt live in `reference/
 ```
 codemap/
   SKILL.md          # the orchestration the agent reads
-  AGENTS.md         # entry point for Codex / other agents
+  AGENTS.md         # entry point for agents without Skills support
   README.md
   LICENSE           # MIT
   reference/
