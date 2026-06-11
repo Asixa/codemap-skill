@@ -125,6 +125,28 @@ agent — only the convenience changes, never the rules above.
 The non-negotiables (independent per-module audit, deterministic scripts, the four-role
 fix gate) hold on every platform; the table only changes *how* you spawn the work.
 
+## Token efficiency
+
+Almost all the cost is the per-module audit sub-tasks reading code — the scripts are
+nearly free. Levers, biggest first:
+
+1. **Audit on the cheapest capable model.** The audit is read-code + apply-fixed-rubric +
+   emit-JSON; a small/fast model does it well, and `apply_audit.py` rejects bad output.
+   Keep the top model for decomposition, theme synthesis, and fixes only.
+2. **Read targeted, not whole.** The audit prompt (STANDARDS.md) greps markers and reads
+   only the flagged regions; a huge file is scored from its size + a few excerpts, not a
+   full read. Use `query.py --format paths` so a sub-task opens only its module's files.
+3. **Batch the small modules.** Group tiny / low-coupling leaves (≤ ~150 LoC) into one
+   sub-task that audits each independently (see STANDARDS.md). Core / large / high-coupling
+   modules stay solo. This cuts the *number* of spawns (each spawn re-pays system-prompt +
+   rubric overhead). `query.py --max-score 100 --format json` then group by loc/coupling.
+4. **`update`, not `init`.** After the first build, only ever run `update` — it re-audits
+   just the git-changed modules (`needs_audit`), so steady-state cost is tiny.
+5. **Structure-first for big repos.** Run `init` in **structure-only** mode (decompose +
+   `scan --write` + render, *no audits*) to get the map and LoC instantly and cheaply; the
+   HTML renders unscored modules fine. Then fill scores over time with `update` / on-demand
+   audits, cheapest-first or worst-suspected-first.
+
 ---
 
 ## Command: `init` (first build)
@@ -157,12 +179,14 @@ Use when no `modules.json` exists yet. (Also accepts `generate` as an alias.)
    yet). Coupling = structural centrality (low/med/high/core); core = the spine hubs.
 2. **Compute size:** `python3 scripts/scan.py --root <proj> --state <state> --write`.
    It reports every module as `unaudited`.
-3. **Audit — one independent subagent per module, in parallel.** For each id in
-   `needs_audit`, spawn a subagent with the `reference/STANDARDS.md` prompt (filled with
+3. **Audit — one independent sub-task per module, in parallel.** For each id in
+   `needs_audit`, spawn a sub-task with the `reference/STANDARDS.md` prompt (filled with
    the module's label/paths). Collect each JSON result and apply it:
    `python3 scripts/apply_audit.py --state <state> --id <id> --json '<result>' [--rev <git rev>]`.
-   Batch the audits (dozens of modules → many parallel agents, but stay within sane
-   concurrency; chunk if needed).
+   Run on the cheapest capable model, read targeted excerpts, and batch the small/leaf
+   modules per *Token efficiency* + STANDARDS.md. **Structure-only mode:** for a huge repo
+   (or a fast/cheap first pass) you may SKIP this step entirely — render the map with no
+   scores (it renders unscored modules fine), then fill scores later with `update`.
 4. **Synthesize `reportThemes`** (4–7 cross-cutting patterns) from the collected findings
    and write them into `modules.json`.
 5. **Render:** run the render command. Then **stamp the git baseline** so future updates

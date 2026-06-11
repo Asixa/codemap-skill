@@ -92,17 +92,27 @@ grep hit as a problem without reading the surrounding code.
 
 ## Independent-subagent protocol (REQUIRED)
 
-Every module's score MUST be produced by a separate subagent, never inline in the main
-thread, and never reused across modules. One subagent audits one module against the
-paths in its state entry. Spawn them in parallel (Explore or general-purpose).
+Every module's score MUST be produced by a separate sub-task, never inline in the main
+thread, and never reused across modules. The default is one sub-task per module, run in
+parallel. **Token-saving exception:** several *small, low-risk* modules (≤ ~150 LoC, or
+low-coupling leaves) MAY share one sub-task **only if** it audits each independently and
+returns a separate, evidence-backed result per module (this is not batch-scoring — it is
+several independent audits sharing one context to amortize overhead). Core / high-coupling
+/ large modules always get their own sub-task. The audit is a constrained read-and-grade
+task, so run these sub-tasks on the **cheapest capable model**; the strict `apply_audit.py`
+validation plus this rubric catch weak output. Reserve the top model for decomposition,
+theme synthesis, and fixes.
 
 ### Subagent prompt template
 
 > You are auditing CODE QUALITY of ONE functional module for an architecture audit.
 > Module: **{label}** (`{id}`). Files: {paths}. Project root: {root}.
 >
-> Read the module's code (grep the markers below, then READ the surrounding code —
-> never flag a grep hit you haven't read). Judge it against this rubric:
+> Read EFFICIENTLY — do not read whole large files. First grep the smell markers below
+> across {paths}; skim each file's structure (sizes, top-level defs); then READ ONLY the
+> flagged regions plus enough context to judge them (never flag a grep hit you haven't
+> read). For a big file, the line count + a few representative excerpts are usually enough
+> to score bloat/god-component. Judge it against this rubric:
 > {paste the "Scoring rubric", "Smell taxonomy", "Severity" sections above}
 >
 > Hunt specifically for: monkeypatch / stdlib mutation, fallback chains & silent
