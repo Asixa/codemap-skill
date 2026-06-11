@@ -74,32 +74,56 @@ per-language form (e.g. `any-escape` = `as any` / `dynamic` / `void*` / `reinter
 ## Requirements
 
 - **Python 3** — standard library only. No `pip install`, no external packages.
-- **An AI coding agent** to drive the audit/fix/test steps: **Claude Code** (native skill)
-  or **any agent that reads instructions and spawns sub-tasks**, e.g. OpenAI **Codex**
-  (see [Using with Codex](#using-with-codex--other-agents)).
+- **An AI coding agent** to drive the audit/fix/test steps — **Claude Code**, **Codex**,
+  **Cursor**, or any agent that reads instructions and spawns sub-tasks (see Install).
 - A browser to open the generated HTML. That's it.
 
 ## Install
 
-A Claude Code skill is just a folder under `~/.claude/skills/`:
+codemap is one self-contained folder. Clone it once, then wire it into whichever agent you
+use — the engine (Python scripts + the `SKILL.md` / `AGENTS.md` / `reference/STANDARDS.md`
+workflow) is identical for all of them.
+
+**Claude Code** — skills live under `~/.claude/skills/`, so clone it straight there:
 
 ```bash
 git clone https://github.com/Asixa/codemap-skill ~/.claude/skills/codemap
 ```
 
-(Windows PowerShell: `git clone https://github.com/Asixa/codemap-skill $env:USERPROFILE\.claude\skills\codemap`.)
+Restart Claude Code; it shows up as **`/codemap`**.
 
-Restart Claude Code (or start a new session). The skill appears as **`/codemap`**.
+**OpenAI Codex** — Codex auto-reads `AGENTS.md`. Clone the repo, then add one line to your
+project's `AGENTS.md` (or `~/.codex/AGENTS.md`):
+
+```bash
+git clone https://github.com/Asixa/codemap-skill ~/.codemap
+```
+> For architecture maps / code audits, use the codemap tool at `~/.codemap` — follow its `AGENTS.md`.
+
+**Cursor** — clone it, then add a project rule at `.cursor/rules/codemap.mdc`:
+
+```bash
+git clone https://github.com/Asixa/codemap-skill ~/.codemap
+```
+> Use the codemap tool at `~/.codemap` for architecture maps / code audits — follow its `AGENTS.md`.
+
+**Any other agent** (Windsurf, Aider, Cline, …) or **by hand** — clone it anywhere and tell
+the agent: *"Use the codemap tool at `~/.codemap`; follow its `SKILL.md`, and score each
+module with a separate sub-task per `reference/STANDARDS.md`."* The deterministic scripts
+(`scan` / `query` / `render` / `apply_audit`) also run standalone with no agent at all.
+
+> Windows PowerShell: replace `~` with `$env:USERPROFILE` (e.g. `$env:USERPROFILE\.claude\skills\codemap`).
 
 ## Usage
 
-Talk to Claude in plain language, or use the subcommands. On the first run, codemap asks
-your preferences (UI language, output location, project title) and saves them to
+Talk to your agent in plain language, or use the subcommands (shown as Claude Code slash
+commands — say the same verb to any other agent). On the first run, codemap asks your
+preferences (UI language, output location, project title) and saves them to
 `<project>/.codemap/config.json`. Everything it produces lives in `<project>/.codemap/`.
 
 | Command | Does |
 |---|---|
-| `/codemap generate` | first build: ask prefs → decompose into modules → scan → audit every module → render |
+| `/codemap init` | first build: ask prefs → decompose into modules → scan → audit every module → render |
 | `/codemap check` | read-only: is the map stale? shows commits since last run + drifted / new / deleted modules |
 | `/codemap update` | incremental + git-aware: re-audit only changed modules, re-render |
 | `/codemap test <module>` | generate a regression-net of tests for a module |
@@ -122,17 +146,6 @@ python3 $S/scripts/render.py --state .codemap/modules.json --template $S/assets/
 ```
 
 > On Windows use `python` instead of `python3`.
-
-## Using with Codex / other agents
-
-The skill mechanism is Claude-specific, but the **engine is tool-agnostic** — four
-deterministic stdlib-Python scripts plus a Markdown workflow and rubric. **OpenAI Codex**
-auto-reads the shipped **`AGENTS.md`**. To use codemap from Codex (or Cursor, Aider, …):
-
-1. Clone this repo somewhere the agent can read, e.g. `git clone <url> ~/.codemap`.
-2. Tell the agent: *"Use the codemap tool at `<path>` to map/audit this project — follow
-   its `SKILL.md`; score each module with a separate sub-task per `reference/STANDARDS.md`."*
-3. It runs the same `scan → audit → apply_audit → render` loop, using `query.py` to target.
 
 ## How it works
 

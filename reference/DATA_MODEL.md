@@ -79,7 +79,7 @@ subagents edit it) and re-render.
 
 | Field | Written by | When |
 |---|---|---|
-| `meta.*`, `bands`, `spine`, `coupling`, `deps`, `desc`, `paths`, `label`, `id`, `band` | **model** (decomposition) | `generate`, and when structure changes |
+| `meta.*`, `bands`, `spine`, `coupling`, `deps`, `desc`, `paths`, `label`, `id`, `band` | **model** (decomposition) | `init`, and when structure changes |
 | `loc`, `contentHash`, `meta.tracked_*` | `scan.py --write` | every scan |
 | `score`, `grade`, `tags`, `findings`, `auditedHash/At/Rev` | `apply_audit.py` (from an **auditor subagent**) | each (re)audit |
 | `tests` | **test-author subagent** | `test`, and the baseline step of `fix` |

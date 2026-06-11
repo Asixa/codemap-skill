@@ -6,7 +6,7 @@ Claude Code skill, but the engine is tool-agnostic — **Codex, Cursor, Aider, o
 agent that can read instructions and spawn sub-tasks can drive it.**
 
 ## Read these first
-- **`SKILL.md`** — the full workflow and the `generate / check / update / test / fix`
+- **`SKILL.md`** — the full workflow and the `init / check / update / test / fix`
   commands. Follow it exactly.
 - **`reference/STANDARDS.md`** — the fixed scoring rubric, smell taxonomy (with
   per-language equivalents), severity levels, and the **exact per-module audit prompt**.

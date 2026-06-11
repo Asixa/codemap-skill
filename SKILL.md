@@ -54,7 +54,7 @@ prompt) and `standard.json` (the machine copy) in sync if you change the default
   - `codemap.html` + `codemap.md` — the generated outputs (default).
 
   The output location is a user preference: if they want the HTML/MD committed/visible,
-  let them point it at `docs/` instead (ask — see `generate` step 0). Set
+  let them point it at `docs/` instead (ask — see `init` step 0). Set
   `meta.htmlPath` / `meta.mdPath` to wherever the outputs land so the reciprocal links
   are correct (both outputs sit in the same dir, so the in-page link uses the basename).
 - A re-render command (run after any state change):
@@ -113,9 +113,9 @@ per-module subagent loop — never load the full `modules.json` just to pick tar
 
 ---
 
-## Command: `generate` (first build)
+## Command: `init` (first build)
 
-Use when no `modules.json` exists yet (this is also "init").
+Use when no `modules.json` exists yet. (Also accepts `generate` as an alias.)
 
 0. **Ask the user for preferences first** (use the AskUserQuestion tool), then save them to
    `<project>/.codemap/config.json`:
@@ -182,7 +182,7 @@ uses git to show recent history and scope the work.
    (plus any uncommitted edits), so re-audit `needs_audit`. If `git` is null the project
    isn't a git repo — fall back to content-hash staleness only.
 3. **Re-audit only those modules**, each with its own independent subagent (same protocol
-   as `generate` step 3). Apply each via `apply_audit.py --id <id> --rev <head>`. Fresh
+   as `init` step 3). Apply each via `apply_audit.py --id <id> --rev <head>`. Fresh
    modules keep their cached audit — that is the whole point of the content hash.
 4. **Refresh `reportThemes`** if the changes are material (otherwise keep them).
 5. **Render**, then **stamp the baseline**:
