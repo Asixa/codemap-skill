@@ -152,12 +152,29 @@ codemap/
     template.html          # the interactive map shell (data injected at render time)
 ```
 
-## Customizing the standard
+## Customizing the standard (capture your own "what's a problem")
 
-The rubric, smell taxonomy (tags), severity levels, and the exact subagent prompts live
-in `reference/STANDARDS.md` — edit there and every future audit uses the new standard.
-Add a tag? Also add it to the `BAD_TAGS` set (and `TAGS_ZH` for a label) in
-`assets/template.html` so the map colors and counts it.
+The standard is **data, not code** — it lives in `reference/standard.json` (rubric,
+severities, coupling, and the issue tags with descriptions). Two ways to customize:
+
+- **In the map**: open the **Standard** page (header button), click **Edit**, change any
+  description, add your own tags (`+ Tag`), then **Export** → save the downloaded
+  `standard.json` to `<project>/.claude/codemap/standard.json`. Edits are kept in the
+  browser until you export. Custom tags flow through the whole map (cards, filters,
+  report) and are used by future audits.
+- **By file**: copy `reference/standard.json` to `<project>/.claude/codemap/standard.json`
+  and edit it. `render.py` prefers the project file over the skill default.
+
+The prose version + the exact subagent audit prompt live in `reference/STANDARDS.md`
+(keep the two in sync when changing the shipped defaults).
+
+## "Fix this" buttons & automation
+
+Each module's detail panel has a **Copy fix prompt** button — it copies `/codemap fix
+<module>` to the clipboard for you to paste into Claude Code (or adapt for Codex). The
+page intentionally does **not** auto-launch an agent: a generated static HTML has no
+privileged channel to the Claude CLI/agent, and auto-launching the CLI is fragile and
+increasingly restricted. Copy-to-clipboard is the robust, future-proof bridge.
 
 ## Notes
 

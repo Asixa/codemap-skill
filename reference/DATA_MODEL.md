@@ -101,3 +101,11 @@ only stale + unaudited modules need a fresh subagent.
 `coupling` (low/med/high/core) is a **structural** property — how central the module is
 (degree + role). `score` is a **quality** property — how clean the code is. They are
 independent: a `core` module can be clean (A) and a `low` leaf can be broken (F).
+
+## Custom audit standard (`standard.json`)
+
+The scoring standard is data, not code: `reference/standard.json` holds the rubric,
+severities, coupling levels, and the issue `tags` (each `{id,label,labelZh,bad,en,zh}`).
+A project overrides it at `<project>/.claude/codemap/modules.json`'s sibling
+`standard.json`. The map renders + lets you edit it on the **Standard** page (Export to
+save). Audits must use the project standard's tags when present — including custom ones.

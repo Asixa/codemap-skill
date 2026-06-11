@@ -138,6 +138,14 @@
   .std-range{flex:0 0 56px;font-family:var(--mono);font-size:11px;color:var(--muted)}
   .std-key{flex:0 0 116px}
   .std-row .sev{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.4px}
+  .std-row .tg[contenteditable]{outline:none;min-width:40px}
+  .std-desc[contenteditable]{outline:1px dashed var(--border2);outline-offset:2px;border-radius:3px}
+  .xrm{flex:0 0 auto;background:none;border:none;color:var(--faint);cursor:pointer;font-size:12px;padding:0 2px;line-height:1}
+  .xrm:hover{color:#e0524b}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:80;
+    background:var(--panel2);border:1px solid var(--border2);color:var(--ink);font-size:12.5px;
+    padding:9px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:.18s;box-shadow:0 6px 20px #0007}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .std-desc{flex:1;font-size:12.5px;color:#cfd3d8;line-height:1.5}
   ::-webkit-scrollbar{width:11px;height:11px}
   ::-webkit-scrollbar-thumb{background:#2c3137;border-radius:6px;border:3px solid var(--bg2)}
@@ -193,7 +201,7 @@ const BANDS = DATA.bands || [];
 const SPINE = DATA.spine || [];
 const REPORT_THEMES = DATA.reportThemes || [];
 const META = DATA.meta || {};
-const BAD_TAGS = new Set(["monkeypatch","fallback","legacy","dual-format","stub","fake-output","bloat","duplication","glue","silent-except","silent-catch","any-escape","over-fit","god-component","placeholder"]);
+let BAD_TAGS = new Set(["monkeypatch","fallback","legacy","dual-format","stub","fake-output","bloat","duplication","glue","silent-except","silent-catch","any-escape","over-fit","god-component","placeholder"]);
 
 /* ---------- i18n: display language via meta.lang (module names never translated) ---------- */
 const LANG = META.lang || "en";
@@ -210,8 +218,12 @@ const I18N = {
    worst:"Worst offenders — click to inspect", commonTags:"Most-common smell tags", themes:"Cross-cutting themes", backToMap:"← Back to map", avg:"avg",
    filter:"Filter", modulesWord:"modules", allWord:"all", noMatches:"no matches", clearFilters:"Clear filters",
    btnReport:"Audit report", btnSpine:"Data-flow spine", colorCoupling:"Color: coupling", colorHealth:"Color: health",
-   btnStd:"Standard", stdTitle:"Audit standard", stdIntro:"How modules are scored — the same rubric for every module, language, and run.",
+   btnStd:"Standard", stdTitle:"Audit standard", stdIntro:"How modules are scored — the same rubric for every module, language, and run. Click Edit to add your own issue tags.",
    stdRubric:"Score → grade", stdSeverity:"Finding severity", stdTags:"Issue tags", stdCoupling:"Coupling (structural, not quality)", close:"Close",
+   stdEditBtn:"Edit", stdDone:"Done", stdExport:"Export", stdReset:"Reset", stdAddTag:"+ Tag",
+   stdEditHint:"Editing — changes save in this browser. Export → save as <code>.claude/codemap/standard.json</code> to make them permanent and used by audits.",
+   stdNewTagId:"New tag id (e.g. perf-risk, security):", stdExported:"Saved standard.json — put it in .claude/codemap/",
+   copyFix:"Copy fix prompt", copied:"Copied — paste into Claude Code / Codex",
    trackedLoc:(l,f)=>`${l} tracked LoC · ${f} files` },
  zh:{ mapSuffix:"· 功能架构图", sub:"功能模块 · 调用层级 · 耦合 · 质量评分 · 代码行数",
    report:"报告", searchPh:"查找模块…", allGrades:"全部等级", anyIssue:"全部问题", scrollNote:"点击模块 · 滚动平移",
@@ -225,59 +237,72 @@ const I18N = {
    worst:"最差模块 —— 点击查看", commonTags:"最常见问题标签", themes:"跨模块共性问题", backToMap:"← 返回地图", avg:"平均",
    filter:"筛选", modulesWord:"个模块", allWord:"全部", noMatches:"无匹配", clearFilters:"清除筛选",
    btnReport:"审计报告", btnSpine:"数据流主线", colorCoupling:"配色：耦合", colorHealth:"配色：健康度",
-   btnStd:"评判标准", stdTitle:"评判标准", stdIntro:"模块如何打分 —— 所有模块、所有语言、每一次运行都用同一套标准。",
+   btnStd:"评判标准", stdTitle:"评判标准", stdIntro:"模块如何打分 —— 所有模块、所有语言、每一次运行都用同一套标准。点「编辑」可加入你自己的问题标签。",
    stdRubric:"分数 → 等级", stdSeverity:"问题严重度", stdTags:"问题标签", stdCoupling:"耦合（结构维度，非质量）", close:"关闭",
+   stdEditBtn:"编辑", stdDone:"完成", stdExport:"导出", stdReset:"重置", stdAddTag:"+ 标签",
+   stdEditHint:"编辑中 —— 改动保存在本浏览器。导出 → 存为 <code>.claude/codemap/standard.json</code> 即永久生效并被审计采用。",
+   stdNewTagId:"新标签 id（如 perf-risk、security）：", stdExported:"已生成 standard.json —— 放到 .claude/codemap/ 下",
+   copyFix:"复制修复指令", copied:"已复制 —— 粘贴到 Claude Code / Codex",
    trackedLoc:(l,f)=>`${l} 行（已跟踪）· ${f} 个文件` },
 };
 function tl(k){ const d=I18N[LANG]||I18N.en; return d[k]!=null?d[k]:(I18N.en[k]!=null?I18N.en[k]:k); }
 document.documentElement.lang = LANG;
-/* smell-tag display labels (the tag id stays English for logic/filtering) */
-const TAGS_ZH={ monkeypatch:"猴补丁", fallback:"回退兜底", legacy:"遗留", "dual-format":"双格式",
-  stub:"占位桩", "fake-output":"伪造输出", bloat:"臃肿", duplication:"重复", glue:"胶水",
-  "silent-except":"静默吞错", "silent-catch":"静默吞错", "any-escape":"类型逃逸",
-  "over-fit":"过度特化", "god-component":"上帝组件", placeholder:"占位", clean:"干净" };
-function tagLabel(t){ return LANG==="zh" ? (TAGS_ZH[t]||t) : t; }
+function stdText(o){ return o ? (LANG==="zh" ? (o.zh||o.en||"") : (o.en||o.zh||"")) : ""; }
 
-/* ---------- the audit standard, shown on its own page (overlay) ---------- */
-const STD = {
+/* ---------- the audit standard — editable, configurable, its own page ----------
+   Effective standard = a saved browser draft (user edits), else the injected file
+   (DATA.standard, from .claude/codemap/standard.json or the skill default), else
+   this built-in fallback. Edit it on the Standard page and Export to standard.json
+   to make it permanent and used by audits. Custom tags flow through the whole map. */
+const BUILTIN_STD = {
   rubric:[
-    {g:"A", s:95, r:"90–100", en:"clean, well-scoped, idiomatic", zh:"干净、职责单一、地道"},
-    {g:"B", s:82, r:"75–89",  en:"minor issues: a documented shim, mild bloat", zh:"小问题：有文档的兼容、轻微臃肿"},
-    {g:"C", s:67, r:"60–74",  en:"notable hacks / fallbacks / bloat / duplication", zh:"明显的 hack / 回退 / 臃肿 / 重复"},
-    {g:"D", s:50, r:"40–59",  en:"significant legacy / stubs / duplication, or a protocol violation", zh:"严重的遗留 / 占位 / 重复，或协议违规"},
-    {g:"F", s:25, r:"0–39",   en:"broken, fake output, or unfinished-but-wired", zh:"损坏、伪造输出，或未完成却已接线"},
+    {grade:"A",score:95,range:"90–100",en:"clean, well-scoped, idiomatic",zh:"干净、职责单一、地道"},
+    {grade:"B",score:82,range:"75–89",en:"minor issues: a documented shim, mild bloat",zh:"小问题：有文档的兼容、轻微臃肿"},
+    {grade:"C",score:67,range:"60–74",en:"notable hacks / fallbacks / bloat / duplication",zh:"明显的 hack / 回退 / 臃肿 / 重复"},
+    {grade:"D",score:50,range:"40–59",en:"significant legacy / stubs / duplication, or a protocol violation",zh:"严重的遗留 / 占位 / 重复，或协议违规"},
+    {grade:"F",score:25,range:"0–39",en:"broken, fake output, or unfinished-but-wired",zh:"损坏、伪造输出，或未完成却已接线"},
   ],
-  sev:[
-    {k:"HIGH", en:"wrong / dangerous / fake, a protocol or security issue, or a genuine maintenance hazard", zh:"错误 / 危险 / 伪造、协议或安全问题，或真正的维护地雷"},
-    {k:"MED",  en:"a real smell a maintainer should fix", zh:"维护者该修的真坏味"},
-    {k:"LOW",  en:"a documented shim, a cosmetic cast, benign bloat — worth noting, not urgent", zh:"有文档的兼容、装饰性 cast、良性臃肿 —— 值得记、不紧急"},
+  severities:[
+    {key:"HIGH",en:"wrong / dangerous / fake, a protocol or security issue, or a genuine maintenance hazard",zh:"错误 / 危险 / 伪造、协议或安全问题，或真正的维护地雷"},
+    {key:"MED",en:"a real smell a maintainer should fix",zh:"维护者该修的真坏味"},
+    {key:"LOW",en:"a documented shim, a cosmetic cast, benign bloat — worth noting, not urgent",zh:"有文档的兼容、装饰性 cast、良性臃肿 —— 值得记、不紧急"},
   ],
   coupling:[
-    {k:"core", en:"system spine — central to almost everything", zh:"系统主线 —— 几乎牵连一切"},
-    {k:"high", en:"many connections", zh:"连接很多"},
-    {k:"med",  en:"moderate", zh:"中等"},
-    {k:"low",  en:"leaf / self-contained", zh:"叶子 / 自洽"},
+    {key:"core",en:"system spine — central to almost everything",zh:"系统主线 —— 几乎牵连一切"},
+    {key:"high",en:"many connections",zh:"连接很多"},
+    {key:"med",en:"moderate",zh:"中等"},
+    {key:"low",en:"leaf / self-contained",zh:"叶子 / 自洽"},
   ],
-  tags:["monkeypatch","fallback","silent-except","legacy","dual-format","stub","fake-output",
-        "duplication","bloat","glue","any-escape","over-fit","god-component","placeholder"],
+  tags:[
+    {id:"monkeypatch",label:"monkeypatch",labelZh:"猴补丁",bad:true,en:"runtime mutation of another module / stdlib / vendor; reflection or prototype patching",zh:"运行时改写别的模块/标准库/依赖；反射或原型补丁"},
+    {id:"fallback",label:"fallback",labelZh:"回退兜底",bad:true,en:"'try the real thing, then fake/degrade'; a||b||c chains that hide which value is real",zh:"“先试真的再退化/造假”；a||b||c 掩盖哪个是真值"},
+    {id:"silent-except",label:"silent-except",labelZh:"静默吞错",bad:true,en:"swallowed errors: empty catch / except:pass / ignored return codes",zh:"吞掉错误：空 catch / except:pass / 忽略返回码"},
+    {id:"legacy",label:"legacy",labelZh:"遗留",bad:true,en:"deprecated/back-compat shims, dead-but-shipped code, parallel old+new paths",zh:"遗留/兼容垫片、已发布的死代码、新旧并存"},
+    {id:"dual-format",label:"dual-format",labelZh:"双格式",bad:true,en:"accepting two shapes for one field (snake||camel), patched through the code",zh:"同一字段接受两种形态（snake||camel）并散落各处"},
+    {id:"stub",label:"stub",labelZh:"占位桩",bad:true,en:"NotImplemented / TODO / dead buttons / demo scripts presented as real",zh:"未实现/TODO/死按钮/演示脚本当成品"},
+    {id:"fake-output",label:"fake-output",labelZh:"伪造输出",bad:true,en:"returns random/canned/hardcoded results where real work is implied",zh:"本应真算的地方返回随机/写死结果"},
+    {id:"duplication",label:"duplication",labelZh:"重复",bad:true,en:"copy-pasted logic, or an existing shared abstraction not reused",zh:"复制粘贴，或已有共享抽象却不复用"},
+    {id:"bloat",label:"bloat",labelZh:"臃肿",bad:true,en:"oversized file / function; too many responsibilities in one unit",zh:"超大文件/函数；单元职责过多"},
+    {id:"glue",label:"glue",labelZh:"胶水",bad:true,en:"valueless pass-through: rows of thin forwarders / no-op adapters",zh:"无价值透传：成片薄包装 / 零转换适配器"},
+    {id:"any-escape",label:"any-escape",labelZh:"类型逃逸",bad:true,en:"bypassing the type system: as any / @ts-ignore / dynamic / void* / reinterpret_cast / unsafe",zh:"绕过类型系统：as any / @ts-ignore / dynamic / void* / reinterpret_cast / unsafe"},
+    {id:"over-fit",label:"over-fit",labelZh:"过度特化",bad:true,en:"hardcoded to one case where a small generalization was expected",zh:"硬编码单一情况，本应小幅泛化"},
+    {id:"god-component",label:"god-component",labelZh:"上帝组件",bad:true,en:"one component/class/file doing far too much",zh:"一个组件/类/文件做太多事"},
+    {id:"placeholder",label:"placeholder",labelZh:"占位",bad:true,en:"unfinished UI / data presented as if complete",zh:"未完成的 UI/数据当作已完成"},
+    {id:"clean",label:"clean",labelZh:"干净",bad:false,en:"no material issues — well-scoped",zh:"无实质问题 —— 职责单一"},
+  ],
 };
-const TAG_DESC = {
-  monkeypatch:{en:"runtime mutation of another module / stdlib / vendor; reflection or prototype patching", zh:"运行时改写别的模块/标准库/依赖；反射或原型补丁"},
-  fallback:{en:"'try the real thing, then fake/degrade'; a||b||c chains that hide which value is real", zh:"“先试真的再退化/造假”；a||b||c 掩盖哪个是真值"},
-  "silent-except":{en:"swallowed errors: empty catch / except:pass / ignored return codes", zh:"吞掉错误：空 catch / except:pass / 忽略返回码"},
-  legacy:{en:"deprecated/back-compat shims, dead-but-shipped code, parallel old+new paths", zh:"遗留/兼容垫片、已发布的死代码、新旧并存"},
-  "dual-format":{en:"accepting two shapes for one field (snake||camel), patched through the code", zh:"同一字段接受两种形态（snake||camel）并散落各处"},
-  stub:{en:"NotImplemented / TODO / dead buttons / demo scripts presented as real", zh:"未实现/TODO/死按钮/演示脚本当成品"},
-  "fake-output":{en:"returns random/canned/hardcoded results where real work is implied", zh:"本应真算的地方返回随机/写死结果"},
-  duplication:{en:"copy-pasted logic, or an existing shared abstraction not reused", zh:"复制粘贴，或已有共享抽象却不复用"},
-  bloat:{en:"oversized file / function; too many responsibilities in one unit", zh:"超大文件/函数；单元职责过多"},
-  glue:{en:"valueless pass-through: rows of thin forwarders / no-op adapters", zh:"无价值透传：成片薄包装 / 零转换适配器"},
-  "any-escape":{en:"bypassing the type system: as any / @ts-ignore / dynamic / void* / reinterpret_cast / unsafe", zh:"绕过类型系统：as any / @ts-ignore / dynamic / void* / reinterpret_cast / unsafe"},
-  "over-fit":{en:"hardcoded to one case where a small generalization was expected", zh:"硬编码单一情况，本应小幅泛化"},
-  "god-component":{en:"one component/class/file doing far too much", zh:"一个组件/类/文件做太多事"},
-  placeholder:{en:"unfinished UI / data presented as if complete", zh:"未完成的 UI/数据当作已完成"},
-};
-function stdText(o){ return LANG==="zh" ? (o.zh||o.en) : o.en; }
+const STD_KEY = "codemap.standard."+(META.project||"default");
+function loadStdDraft(){ try{ const s=localStorage.getItem(STD_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+let STDDATA = loadStdDraft() || JSON.parse(JSON.stringify(DATA.standard || BUILTIN_STD));
+const TAGMETA = {};
+function rebuildTagMeta(){
+  for(const k in TAGMETA) delete TAGMETA[k];
+  (STDDATA.tags||[]).forEach(t=>TAGMETA[t.id]=t);
+  BAD_TAGS = new Set((STDDATA.tags||[]).filter(t=>t.bad!==false).map(t=>t.id));
+}
+function tagMeta(id){ return TAGMETA[id] || {id,label:id,bad:true}; }
+function tagLabel(t){ const m=tagMeta(t); return LANG==="zh" ? (m.labelZh||m.label||t) : (m.label||t); }
+rebuildTagMeta();
 
 /* problems POP (saturated red→amber), good RECEDES (pale low-sat green).
    The cue is saturation/lightness, not hue — colorblind-friendlier. */
@@ -414,8 +439,11 @@ function renderDetail(m,outs,ins){
     <div class="rel">${li(outs)}</div>
     <div class="reltitle"><span class="dotc" style="background:var(--in)"></span>${tl('usedBy')}</div>
     <div class="rel">${li(ins)}</div>
-    <button class="btn clearbtn" id="clearBtn">${tl('clearSel')}</button></div>`;
+    ${m.score!=null?`<button class="btn clearbtn" id="copyFixBtn" style="margin-top:14px">${tl('copyFix')} ↗</button>`:""}
+    <button class="btn clearbtn" id="clearBtn" style="margin-top:8px">${tl('clearSel')}</button></div>`;
   bindGo(); document.getElementById("clearBtn").addEventListener("click",clearSel);
+  const cf=document.getElementById("copyFixBtn");
+  if(cf) cf.onclick=()=>{ copyText("/codemap fix "+m.id); toast(tl('copied')); };
 }
 function bindGo(){detail.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.go)));}
 function bandTitle(b){return (BANDS.find(x=>x.id===b)||{}).t||b;}
@@ -467,23 +495,69 @@ function renderReport(){
     <button class="btn clearbtn" id="toMapBtn">${tl('backToMap')}</button></div>`;
   bindGo(); document.getElementById("toMapBtn").addEventListener("click",clearSel);
 }
-function openStandard(){
-  const rubric=STD.rubric.map(x=>`<div class="std-row"><span class="std-badge" style="background:${healthColor(x.s)}">${x.g}</span><span class="std-range">${x.r}</span><span class="std-desc">${stdText(x)}</span></div>`).join("");
-  const sev=STD.sev.map(x=>`<div class="std-row"><span class="std-key"><span class="sev sev-${x.k}">${x.k}</span></span><span class="std-desc">${stdText(x)}</span></div>`).join("");
-  const tags=STD.tags.map(t=>`<div class="std-row"><span class="std-key"><span class="tg bad">${tagLabel(t)}</span></span><span class="std-desc">${stdText(TAG_DESC[t]||{en:t})}</span></div>`).join("");
-  const coup=STD.coupling.map(x=>`<div class="std-row"><span class="std-key" style="font-family:var(--mono);font-size:11.5px;color:var(--ink)">${x.k}</span><span class="std-desc">${stdText(x)}</span></div>`).join("");
-  const mo=document.getElementById("stdModal");
-  mo.innerHTML=`<div class="sheet">
-    <button class="btn xbtn" id="stdClose">${tl('close')}</button>
-    <h2>${tl('stdTitle')}</h2><div class="intro">${tl('stdIntro')}</div>
+function toast(msg){
+  let t=document.getElementById("toast");
+  if(!t){ t=document.createElement("div"); t.id="toast"; t.className="toast"; document.body.appendChild(t); }
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2400);
+}
+function copyText(s){
+  if(navigator.clipboard) { navigator.clipboard.writeText(s).catch(()=>{}); return; }
+  const ta=document.createElement("textarea"); ta.value=s; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); }catch(e){} ta.remove();
+}
+let STD_EDIT=false;
+function openStandard(){ STD_EDIT=false; renderStd(); document.getElementById("stdModal").classList.add("open"); }
+function closeStandard(){ document.getElementById("stdModal").classList.remove("open"); }
+function saveStdDraft(){ try{ localStorage.setItem(STD_KEY, JSON.stringify(STDDATA)); }catch(e){} rebuildTagMeta(); }
+function langKey(){ return LANG==="zh" ? "zh" : "en"; }
+function renderStd(){
+  const ed=STD_EDIT, ce=ed?' contenteditable="true" spellcheck="false"':'';
+  const rubric=STDDATA.rubric.map((x,i)=>`<div class="std-row"><span class="std-badge" style="background:${healthColor(x.score)}">${x.grade}</span><span class="std-range">${x.range}</span><span class="std-desc"${ce} data-k="rubric" data-i="${i}">${stdText(x)}</span></div>`).join("");
+  const sev=STDDATA.severities.map((x,i)=>`<div class="std-row"><span class="std-key"><span class="sev sev-${x.key}">${x.key}</span></span><span class="std-desc"${ce} data-k="sev" data-i="${i}">${stdText(x)}</span></div>`).join("");
+  const tags=STDDATA.tags.map((x,i)=>`<div class="std-row"><span class="std-key"><span class="tg ${x.bad===false?'ok':'bad'}"${ce} data-k="taglabel" data-i="${i}">${LANG==="zh"?(x.labelZh||x.label):x.label}</span></span><span class="std-desc"${ce} data-k="tag" data-i="${i}">${stdText(x)}</span>${ed?`<button class="xrm" data-rm="${i}" title="remove">✕</button>`:''}</div>`).join("");
+  const coup=STDDATA.coupling.map((x,i)=>`<div class="std-row"><span class="std-key" style="font-family:var(--mono);font-size:11.5px;color:var(--ink)">${x.key}</span><span class="std-desc"${ce} data-k="coup" data-i="${i}">${stdText(x)}</span></div>`).join("");
+  document.getElementById("stdModal").innerHTML=`<div class="sheet">
+    <div class="xbtn" style="display:flex;gap:6px">
+      <button class="btn ${ed?'active':''}" id="stdEdit">${ed?tl('stdDone'):tl('stdEditBtn')}</button>
+      ${ed?`<button class="btn" id="stdExport">${tl('stdExport')}</button><button class="btn" id="stdReset">${tl('stdReset')}</button>`:''}
+      <button class="btn" id="stdClose">${tl('close')}</button>
+    </div>
+    <h2>${tl('stdTitle')}</h2><div class="intro">${ed?tl('stdEditHint'):tl('stdIntro')}</div>
     <div class="std-h4">${tl('stdRubric')}</div>${rubric}
     <div class="std-h4">${tl('stdSeverity')}</div>${sev}
-    <div class="std-h4">${tl('stdTags')}</div>${tags}
+    <div class="std-h4">${tl('stdTags')}${ed?` <button class="btn" id="stdAddTag" style="margin-left:8px;padding:2px 8px">${tl('stdAddTag')}</button>`:''}</div>${tags}
     <div class="std-h4">${tl('stdCoupling')}</div>${coup}</div>`;
-  mo.classList.add("open");
-  document.getElementById("stdClose").addEventListener("click",closeStandard);
+  document.getElementById("stdClose").onclick=closeStandard;
+  document.getElementById("stdEdit").onclick=()=>{STD_EDIT=!STD_EDIT; renderStd();};
+  if(ed){
+    document.getElementById("stdExport").onclick=()=>{
+      const blob=new Blob([JSON.stringify(STDDATA,null,1)],{type:"application/json"});
+      const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="standard.json"; a.click();
+      toast(tl('stdExported'));
+    };
+    document.getElementById("stdReset").onclick=()=>{
+      try{localStorage.removeItem(STD_KEY);}catch(e){}
+      STDDATA=JSON.parse(JSON.stringify(DATA.standard||BUILTIN_STD)); rebuildTagMeta(); renderStd();
+    };
+    document.getElementById("stdAddTag").onclick=()=>{
+      const id=(prompt(tl('stdNewTagId'))||"").trim().toLowerCase().replace(/\s+/g,"-");
+      if(!id || STDDATA.tags.some(t=>t.id===id)) return;
+      STDDATA.tags.push({id,label:id,labelZh:id,bad:true,en:"",zh:""}); saveStdDraft(); renderStd();
+    };
+    document.querySelectorAll("#stdModal [data-rm]").forEach(b=>b.onclick=()=>{STDDATA.tags.splice(+b.dataset.rm,1); saveStdDraft(); renderStd();});
+    document.querySelectorAll("#stdModal [data-k]").forEach(el=>el.addEventListener("input",()=>{
+      const i=+el.dataset.i, v=el.textContent, lk=langKey();
+      const k=el.dataset.k;
+      if(k==="rubric") STDDATA.rubric[i][lk]=v;
+      else if(k==="sev") STDDATA.severities[i][lk]=v;
+      else if(k==="coup") STDDATA.coupling[i][lk]=v;
+      else if(k==="tag") STDDATA.tags[i][lk]=v;
+      else if(k==="taglabel") STDDATA.tags[i][LANG==="zh"?"labelZh":"label"]=v;
+      saveStdDraft();
+    }));
+  }
 }
-function closeStandard(){ document.getElementById("stdModal").classList.remove("open"); }
 function toggleHealth(){
   const on=!board.classList.contains("show-health");
   board.classList.toggle("show-health",on);

@@ -28,12 +28,30 @@ def band_order(state):
     return [b["id"] for b in state.get("bands", []) if not b.get("wire")]
 
 
-def render_html(state, template):
+def load_standard(state_path, explicit=None):
+    """Effective audit standard: explicit path → project override next to the state
+    file (`<state dir>/standard.json`) → the skill's default `reference/standard.json`."""
+    candidates = []
+    if explicit:
+        candidates.append(explicit)
+    candidates.append(os.path.join(os.path.dirname(os.path.abspath(state_path)), "standard.json"))
+    candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "reference", "standard.json"))
+    for c in candidates:
+        if c and os.path.isfile(c):
+            try:
+                return json.load(open(c, encoding="utf-8"))
+            except (ValueError, OSError):
+                pass
+    return None
+
+
+def render_html(state, template, standard=None):
     data = {
         "meta": state.get("meta", {}),
         "bands": state.get("bands", []),
         "spine": state.get("spine", []),
         "reportThemes": state.get("reportThemes", []),
+        "standard": standard,
         "modules": [
             {k: m.get(k) for k in (
                 "id", "label", "band", "path", "desc", "coupling", "deps",
@@ -136,12 +154,14 @@ def main():
     ap.add_argument("--template", required=True)
     ap.add_argument("--out-html", required=True)
     ap.add_argument("--out-md", required=True)
+    ap.add_argument("--standard", help="path to a custom standard.json (else project override → skill default)")
     args = ap.parse_args()
 
     state = json.load(open(args.state, encoding="utf-8"))
     template = open(args.template, encoding="utf-8").read()
+    standard = load_standard(args.state, args.standard)
 
-    open(args.out_html, "w", encoding="utf-8").write(render_html(state, template))
+    open(args.out_html, "w", encoding="utf-8").write(render_html(state, template, standard))
     open(args.out_md, "w", encoding="utf-8").write(render_md(state))
     n = len(state.get("modules", []))
     scored = sum(1 for m in state.get("modules", []) if m.get("score") is not None)

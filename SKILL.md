@@ -33,6 +33,16 @@ The scoring rubric, smell taxonomy, severity levels, and the required subagent p
 are fixed in **`reference/STANDARDS.md`** — read it and follow it verbatim. The state
 schema is in **`reference/DATA_MODEL.md`**. Do not improvise scoring or invent tags.
 
+**The standard is configurable per project.** A machine-readable copy lives in
+`reference/standard.json` (rubric, severities, coupling, and the tag list with
+descriptions). A project may override it by placing its own `standard.json` next to the
+state file (`<project>/.claude/codemap/standard.json`) — `render.py` picks the project
+file first, else the skill default, and injects it into the map's editable **Standard**
+page. **Honor the project's tag set:** when `.claude/codemap/standard.json` exists, audit
+modules using *its* tags (including any custom tags the user added) — that is how users
+capture their own definition of a problem. Keep `STANDARDS.md` (the prose + subagent
+prompt) and `standard.json` (the machine copy) in sync if you change the defaults.
+
 ## Conventions
 
 - `SKILL_DIR` = this skill's directory. Scripts are at `SKILL_DIR/scripts/*.py`,

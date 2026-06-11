@@ -1,0 +1,37 @@
+{
+ "rubric": [
+  {"grade": "A", "score": 95, "range": "90–100", "en": "clean, well-scoped, idiomatic", "zh": "干净、职责单一、地道"},
+  {"grade": "B", "score": 82, "range": "75–89", "en": "minor issues: a documented shim, mild bloat", "zh": "小问题：有文档的兼容、轻微臃肿"},
+  {"grade": "C", "score": 67, "range": "60–74", "en": "notable hacks / fallbacks / bloat / duplication", "zh": "明显的 hack / 回退 / 臃肿 / 重复"},
+  {"grade": "D", "score": 50, "range": "40–59", "en": "significant legacy / stubs / duplication, or a protocol violation", "zh": "严重的遗留 / 占位 / 重复，或协议违规"},
+  {"grade": "F", "score": 25, "range": "0–39", "en": "broken, fake output, or unfinished-but-wired", "zh": "损坏、伪造输出，或未完成却已接线"}
+ ],
+ "severities": [
+  {"key": "HIGH", "en": "wrong / dangerous / fake, a protocol or security issue, or a genuine maintenance hazard", "zh": "错误 / 危险 / 伪造、协议或安全问题，或真正的维护地雷"},
+  {"key": "MED", "en": "a real smell a maintainer should fix", "zh": "维护者该修的真坏味"},
+  {"key": "LOW", "en": "a documented shim, a cosmetic cast, benign bloat — worth noting, not urgent", "zh": "有文档的兼容、装饰性 cast、良性臃肿 —— 值得记、不紧急"}
+ ],
+ "coupling": [
+  {"key": "core", "en": "system spine — central to almost everything", "zh": "系统主线 —— 几乎牵连一切"},
+  {"key": "high", "en": "many connections", "zh": "连接很多"},
+  {"key": "med", "en": "moderate", "zh": "中等"},
+  {"key": "low", "en": "leaf / self-contained", "zh": "叶子 / 自洽"}
+ ],
+ "tags": [
+  {"id": "monkeypatch", "label": "monkeypatch", "labelZh": "猴补丁", "bad": true, "en": "runtime mutation of another module / stdlib / vendor; reflection or prototype patching", "zh": "运行时改写别的模块/标准库/依赖；反射或原型补丁"},
+  {"id": "fallback", "label": "fallback", "labelZh": "回退兜底", "bad": true, "en": "'try the real thing, then fake/degrade'; a||b||c chains that hide which value is real", "zh": "“先试真的再退化/造假”；a||b||c 掩盖哪个是真值"},
+  {"id": "silent-except", "label": "silent-except", "labelZh": "静默吞错", "bad": true, "en": "swallowed errors: empty catch / except:pass / ignored return codes", "zh": "吞掉错误：空 catch / except:pass / 忽略返回码"},
+  {"id": "legacy", "label": "legacy", "labelZh": "遗留", "bad": true, "en": "deprecated/back-compat shims, dead-but-shipped code, parallel old+new paths", "zh": "遗留/兼容垫片、已发布的死代码、新旧并存"},
+  {"id": "dual-format", "label": "dual-format", "labelZh": "双格式", "bad": true, "en": "accepting two shapes for one field (snake||camel), patched through the code", "zh": "同一字段接受两种形态（snake||camel）并散落各处"},
+  {"id": "stub", "label": "stub", "labelZh": "占位桩", "bad": true, "en": "NotImplemented / TODO / dead buttons / demo scripts presented as real", "zh": "未实现/TODO/死按钮/演示脚本当成品"},
+  {"id": "fake-output", "label": "fake-output", "labelZh": "伪造输出", "bad": true, "en": "returns random/canned/hardcoded results where real work is implied", "zh": "本应真算的地方返回随机/写死结果"},
+  {"id": "duplication", "label": "duplication", "labelZh": "重复", "bad": true, "en": "copy-pasted logic, or an existing shared abstraction not reused", "zh": "复制粘贴，或已有共享抽象却不复用"},
+  {"id": "bloat", "label": "bloat", "labelZh": "臃肿", "bad": true, "en": "oversized file / function; too many responsibilities in one unit", "zh": "超大文件/函数；单元职责过多"},
+  {"id": "glue", "label": "glue", "labelZh": "胶水", "bad": true, "en": "valueless pass-through: rows of thin forwarders / no-op adapters", "zh": "无价值透传：成片薄包装 / 零转换适配器"},
+  {"id": "any-escape", "label": "any-escape", "labelZh": "类型逃逸", "bad": true, "en": "bypassing the type system: as any / @ts-ignore / dynamic / void* / reinterpret_cast / unsafe", "zh": "绕过类型系统：as any / @ts-ignore / dynamic / void* / reinterpret_cast / unsafe"},
+  {"id": "over-fit", "label": "over-fit", "labelZh": "过度特化", "bad": true, "en": "hardcoded to one case where a small generalization was expected", "zh": "硬编码单一情况，本应小幅泛化"},
+  {"id": "god-component", "label": "god-component", "labelZh": "上帝组件", "bad": true, "en": "one component/class/file doing far too much", "zh": "一个组件/类/文件做太多事"},
+  {"id": "placeholder", "label": "placeholder", "labelZh": "占位", "bad": true, "en": "unfinished UI / data presented as if complete", "zh": "未完成的 UI/数据当作已完成"},
+  {"id": "clean", "label": "clean", "labelZh": "干净", "bad": false, "en": "no material issues — well-scoped", "zh": "无实质问题 —— 职责单一"}
+ ]
+}
